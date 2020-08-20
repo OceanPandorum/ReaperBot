@@ -1,23 +1,21 @@
 package reaperbot;
 
-import arc.*;
-import arc.Net.*;
-import arc.struct.*;
+import arc.Core;
+import arc.Net.HttpStatus;
+import arc.struct.Array;
 import arc.util.*;
-import arc.util.serialization.*;
-import reaperbot.Net.*;
-import mindustry.mod.*;
-import mindustry.net.*;
-import net.dv8tion.jda.api.*;
+import mindustry.mod.ModListing;
+import mindustry.net.Host;
+import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.entities.*;
-import net.dv8tion.jda.api.events.guild.member.*;
-import net.dv8tion.jda.api.events.message.*;
-import net.dv8tion.jda.api.events.message.react.*;
-import net.dv8tion.jda.api.hooks.*;
+import net.dv8tion.jda.api.events.guild.member.GuildMemberJoinEvent;
+import net.dv8tion.jda.api.events.message.MessageReceivedEvent;
+import net.dv8tion.jda.api.events.message.MessageUpdateEvent;
+import net.dv8tion.jda.api.hooks.ListenerAdapter;
 
 import java.awt.*;
 import java.time.*;
-import java.time.format.*;
+import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.Timer;
 import java.util.*;
@@ -26,30 +24,18 @@ import java.util.concurrent.*;
 import static reaperbot.ReaperBot.*;
 
 public class Messages extends ListenerAdapter{
-    JDA jda;
     TextChannel channel;
     User lastUser;
+    Guild guild;
     Message lastMessage;
     Message lastSentMessage;
-    Guild guild;
-    Color normalColor = Color.decode("#FAB462");
+    Color normalColor = Color.decode("#b9fca6");
     Color errorColor = Color.decode("#ff3838");
-    Json json = new Json();
 
     public Messages(){
-        String token = System.getProperty("token");
-        Log.info("Found token: {0}", token);
-
         try{
-            jda = new JDABuilder(token).build();
-            jda.awaitReady();
-            jda.addEventListener(this);
-            guild = jda.getGuildById(guildID);
-
-            Log.info("Discord bot up.");
             Core.net = new arc.Net();
 
-            //server updater
             Executors.newSingleThreadScheduledExecutor().scheduleAtFixedRate(() -> {
                 List<Host> results = new CopyOnWriteArrayList<>();
 
@@ -63,7 +49,6 @@ public class Messages extends ListenerAdapter{
                     EmbedBuilder embed = new EmbedBuilder();
                     embed.setColor(normalColor);
 
-                    //send new messages
                     for(Host result : results){
                         if(result.name != null && result.players > 0){
                             embed.addField(result.address,
@@ -80,7 +65,7 @@ public class Messages extends ListenerAdapter{
 
                     embed.setFooter(Strings.format("Last Updated: {0}", DateTimeFormatter.ofPattern("dd MMM yyyy HH:mm:ss ZZZZ").format(ZonedDateTime.now())));
 
-                    guild.getTextChannelById(serverChannelID).editMessageById(578594853991088148L, embed.build()).queue();
+                    guild.getTextChannelById(serverChannelID).editMessageById(746013318623396020L, embed.build()).queue();
                 });
             }, 10, 60, TimeUnit.SECONDS);
 
@@ -107,14 +92,13 @@ public class Messages extends ListenerAdapter{
                 }
             });
 
-            //mod list updater
             Executors.newSingleThreadScheduledExecutor().scheduleAtFixedRate(() -> {
                 Core.net.httpGet("https://raw.githubusercontent.com/Anuken/MindustryMods/master/mods.json", response -> {
                     if(response.getStatus() != HttpStatus.OK){
                         return;
                     }
 
-                    Array<ModListing> listings = json.fromJson(Array.class, ModListing.class, response.getResultAsString());
+                    Array<ModListing> listings = new Array<>();//json.fromJson(Array.class, ModListing.class, response.getResultAsString());
                     listings.sort(Structs.comparing(list -> Date.from(Instant.parse(list.lastUpdated))));
                     listings.reverse();
                     listings.truncate(20);
@@ -133,7 +117,7 @@ public class Messages extends ListenerAdapter{
                             Strings.stripColors(listing.description)), false);
                     }
 
-                    guild.getTextChannelById(modChannelID).editMessageById(663246057660219413L, embed.build()).queue();
+                    //guild.getTextChannelById(modChannelID).editMessageById(663246057660219413L, embed.build()).queue();
                 }, Log::err);
             }, 0, 20, TimeUnit.MINUTES);
         }catch(Exception e){
@@ -158,19 +142,10 @@ public class Messages extends ListenerAdapter{
 
     @Override
     public void onMessageUpdate(MessageUpdateEvent event){
-        commands.edited(event.getMessage());
-    }
-
-    @Override
-    public void onMessageDelete(MessageDeleteEvent event){
-        //commands.deleted(event.getMessage());
-    }
-
-    @Override
-    public void onMessageReactionAdd(MessageReactionAddEvent event){
-
-        if(event.getChannel().getIdLong() == bugReportChannelID && commands.isAdmin(event.getUser())){
-            commands.handleBugReact(event);
+        try {
+            commands.edited(event.getMessage());
+        } catch (Exception e) {
+            e.printStackTrace();
         }
     }
 
@@ -184,7 +159,7 @@ public class Messages extends ListenerAdapter{
         ).queue();
     }
 
-    public void sendUpdate(VersionInfo info){
+    public void sendUpdate(Net.VersionInfo info){
         String text = info.description;
         int maxLength = 2000;
         while(true){
@@ -226,30 +201,8 @@ public class Messages extends ListenerAdapter{
         }, ReaperBot.messageDeleteTime);
     }
 
-    public void sendCrash(JsonValue value){
-
-        StringBuilder builder = new StringBuilder();
-        value = value.child;
-        while(value != null){
-            builder.append("**");
-            builder.append(value.name);
-            builder.append("**");
-            builder.append(": ");
-            if(value.name.equals("trace")){
-                builder.append("```xl\n"); //xl formatting looks nice
-                builder.append(value.asString().replace("\\n", "\n").replace("\t", "  "));
-                builder.append("```");
-            }else{
-                builder.append(value.asString());
-            }
-            builder.append("\n");
-            value = value.next;
-        }
-        guild.getTextChannelById(ReaperBot.crashReportChannelID).sendMessage(builder.toString()).queue();
-    }
-
     public void logTo(String text, Object... args){
-        guild.getTextChannelById(logChannelID).sendMessage(Strings.format(text, args)).queue();
+        jda.getTextChannelById(logChannelID).sendMessage(format(text, args)).queue();
     }
 
     public void text(String text, Object... args){

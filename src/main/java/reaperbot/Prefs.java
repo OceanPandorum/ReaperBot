@@ -1,56 +1,64 @@
 package reaperbot;
 
-import arc.struct.*;
-import arc.util.serialization.*;
-
-import java.io.*;
-import java.util.*;
+import arc.files.Fi;
+import arc.struct.Array;
+import com.eclipsesource.json.*;
 
 public class Prefs{
-    private Properties prop;
-    private File file;
-    private Json json = new Json();
+    private JsonObject object;
+    private Fi file;
 
-    public Prefs(File file){
+    public Prefs(Fi file){
         this.file = file;
+
         try{
-            if(!file.exists()) file.createNewFile();
-            prop = new Properties();
-            prop.load(new FileInputStream(file));
-        }catch(IOException e){
-            throw new RuntimeException(e);
+            object = JsonObject.readFrom(file.readString());
+        }catch(Exception e){
+            object = new JsonObject();
+            file.writeString(object.toString());
         }
     }
 
-    @SuppressWarnings("unchecked")
-    public Array<String> getArray(String property){
-        String value = prop.getProperty(property, "[]");
-        return json.fromJson(Array.class, value);
+    public Array<String> getArray(String name){
+        try {
+            Array<String> strings = new Array<>();
+            JsonArray array = object.get(name).asArray();
+            array.forEach(s -> strings.add(s.asString()));
+            return strings;
+        } catch (Exception e) {
+            return Array.with("[]");
+        }
     }
 
-    public void putArray(String property, Array<String> arr){
-        prop.put(property, json.toJson(arr));
+    public void putArray(String name, Array<String> arr){
+        JsonArray jsonArray = new JsonArray();
+        arr.forEach(jsonArray::add);
+        object.add(name, jsonArray);
         save();
     }
 
-    public String get(String property, String def){
-        return prop.getProperty(property, def);
+    public String get(String name, String def){
+        try {
+            return object.get(name).asString();
+        }catch (Exception e){
+            return def;
+        }
     }
 
-    public int getInt(String property, int def){
-        return Integer.parseInt(prop.getProperty(property, def + ""));
+    public int getInt(String name, int def){
+        try {
+            return Integer.parseInt(object.get(name).asString());
+        } catch (Exception e){
+            return def;
+        }
     }
 
-    public void put(String property, String value){
-        prop.put(property, value);
+    public void put(String name, String value){
+        object.add(name, value);
         save();
     }
 
     public void save(){
-        try{
-            prop.store(new FileOutputStream(file), null);
-        }catch(IOException e){
-            throw new RuntimeException(e);
-        }
+        file.writeString(object.toString(WriterConfig.PRETTY_PRINT));
     }
 }

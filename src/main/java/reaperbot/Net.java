@@ -12,8 +12,6 @@ import mindustry.net.NetworkIO;
 import java.io.InputStream;
 import java.net.*;
 import java.nio.ByteBuffer;
-import java.util.Timer;
-import java.util.TimerTask;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
@@ -135,13 +133,13 @@ public class Net{
     }
 
     public void run(long delay, Runnable r){
-        new Timer().schedule(
+        /*new Timer().schedule(
         new TimerTask(){
             @Override
             public void run(){
                 r.run();
             }
-        }, delay);
+        }, delay);*/
     }
 
     public Host readServerData(ByteBuffer buffer, String ip, long ping){

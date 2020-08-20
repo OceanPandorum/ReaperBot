@@ -1,8 +1,4 @@
-plugins {
-    id 'java'
-}
-
-project.ext.mainClassName = "reaperbot.ReaperBot"
+apply plugin: 'java'
 
 repositories {
     mavenCentral()
@@ -12,16 +8,19 @@ repositories {
     }
 }
 
+project.ext.mainClassName = "reaperbot.ReaperBot"
+
 ext{
     mindustryVersion = 'v104.6'
 }
 
 dependencies {
-    implementation 'net.dv8tion:JDA:4.0.0_54'
-    implementation "org.jsoup:jsoup:1.7.2"
+    implementation "net.dv8tion:JDA:4.2.0_168"
+    implementation "com.eclipsesource.minimal-json:minimal-json:0.9.5"
     implementation "com.github.Anuken.Arc:arc-core:$mindustryVersion"
     implementation "com.github.Anuken.Mindustry:core:$mindustryVersion"
 }
+
 
 task run(dependsOn: classes, type: JavaExec) {
     if (project.hasProperty("token")) systemProperty "token", project.getProperty("token")
@@ -46,3 +45,4 @@ task dist(type: Jar) {
 
     from files(sourceSets.main.output)
 }
+

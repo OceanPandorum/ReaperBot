@@ -51,8 +51,7 @@ public class ContentHandler{
             for(Content content : Vars.content.getBy(type)){
                 try{
                     content.init();
-                }catch(Throwable ignored){
-                }
+                }catch(Throwable ignored){}
             }
         }
 
