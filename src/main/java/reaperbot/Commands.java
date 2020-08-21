@@ -12,7 +12,7 @@ import java.util.Arrays;
 import static reaperbot.ReaperBot.*;
 
 public class Commands{
-    private final String prefix = "!";
+    private final String prefix = "$";
     private final CommandHandler handler = new CommandHandler(prefix);
     private final CommandHandler adminHandler = new CommandHandler(prefix);
     private final String[] warningStrings = {"once", "twice", "thrice", "too many times"};
