@@ -2,32 +2,24 @@ package reaperbot;
 
 import arc.files.Fi;
 import arc.util.Log;
-import net.dv8tion.jda.api.JDA;
-import net.dv8tion.jda.api.JDABuilder;
+import net.dv8tion.jda.api.*;
 
 import javax.security.auth.login.LoginException;
 
 public class ReaperBot {
-    public static final String releasesURL = "https://api.github.com/repos/Anuken/Mindustry/releases";
     public static final long guildID = 741011186916524213L; // id бота
+    public static final long muteRoleID = 745156292989026334L; // id мьют роли
     public static final Fi prefsFile = new Fi("prefs.json");
-    public static final long modChannelID = 0L; //
-    public static final long pluginChannelID = 744853784038998058L;
     public static final long serverChannelID = 746000026269909002L; // наши-сервера
-    public static final long logChannelID = 746007302900809768L; // логи
-    public static final long commandChannelID = 744874986073751584L;
-    public static final long announcementsChannelID = 0L; //
-    public static final long screenshotsChannelID = 0L; //
-    public static final long suggestionsChannelID = 0L; //
-    public static final long mapsChannelID = 744906782370955274L;
+    public static final long commandChannelID = 744874986073751584L; // using-bots--использование-ботов
+    public static final long mapsChannelID = 744906782370955274L; // maps--карты
     public static final long moderationChannelID = 0L; //
-    public static final long schematicsChannelID = 744906867183976569L;
+    public static final long schematicsChannelID = 744906867183976569L; // schematics--схемы
     public static final boolean sendWelcomeMessages = false;
-    public static final long messageDeleteTime = 20000;
+    public static final long messageDeleteTime = 20000; // 20 секунд
 
     public static JDA jda;
 
-    public static ServerBridge server;
     public static ContentHandler contentHandler;
     public static Messages messages;
     public static Commands commands;
@@ -51,7 +43,6 @@ public class ReaperBot {
     }
 
     public static void init(){
-        server = new ServerBridge();
         contentHandler = new ContentHandler();
         messages = new Messages();
         commands = new Commands();

@@ -38,7 +38,6 @@ import static mindustry.Vars.world;
 
 public class ContentHandler{
     public static final byte[] mapHeader = {77, 83, 65, 86};
-    public static final String schemHeader = "bXNjaAB";
 
     Graphics2D currentGraphics;
     BufferedImage currentImage;
@@ -57,7 +56,7 @@ public class ContentHandler{
 
         String assets = "content/";
 
-        TextureAtlasData data = new TextureAtlasData(new Fi(assets + "sprites.atlas"), new Fi(assets), false);
+        TextureAtlasData data = new TextureAtlasData(new Fi(assets + "sprites.atlas"), new Fi("content"), false);
         Core.atlas = new TextureAtlas();
 
         ObjectMap<Page, BufferedImage> images = new ObjectMap<>();
@@ -199,7 +198,6 @@ public class ContentHandler{
     }
 
     void readMap(DataInputStream stream, Map out) throws IOException{
-        //meta
         region(stream);
         StringMap map = new StringMap();
         short size = stream.readShort();
@@ -212,7 +210,6 @@ public class ContentHandler{
         out.description = map.get("description");
         out.tags = map;
 
-        //content
         region(stream);
         byte mapped = stream.readByte();
 
@@ -229,7 +226,6 @@ public class ContentHandler{
             }
         }
 
-        //map
         region(stream);
         Mtile[][] tiles = readMapData(stream, cmap);
 
@@ -254,7 +250,6 @@ public class ContentHandler{
 
         Mtile[][] tiles = new Mtile[width][height];
 
-        //read floor and create tiles first
         for(int i = 0; i < width * height; i++){
             int x = i % width, y = i / width;
             short floorid = stream.readShort();
@@ -271,7 +266,6 @@ public class ContentHandler{
             i += consecutives;
         }
 
-        //read blocks
         for(int i = 0; i < width * height; i++){
             int x = i % width, y = i / width;
             Block block = mapper.get(stream.readShort());

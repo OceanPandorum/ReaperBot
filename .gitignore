@@ -8,6 +8,9 @@
 .project
 /.idea/
 /out/
+maps
+schem
 prefs.json
+out.png
 Thumbs.db
 ReaperBot.iml

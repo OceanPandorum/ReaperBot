@@ -6,6 +6,7 @@ import com.eclipsesource.json.*;
 
 public class Prefs{
     private JsonObject object;
+    private JsonArray servers;
     private Fi file;
 
     public Prefs(Fi file){
@@ -13,8 +14,13 @@ public class Prefs{
 
         try{
             object = JsonObject.readFrom(file.readString());
+            servers = object.get("servers").asArray();
+            servers.get(0);
         }catch(Exception e){
             object = new JsonObject();
+            servers = new JsonArray();
+
+            object.add("servers", servers);
             file.writeString(object.toString());
         }
     }
@@ -41,14 +47,6 @@ public class Prefs{
         try {
             return object.get(name).asString();
         }catch (Exception e){
-            return def;
-        }
-    }
-
-    public int getInt(String name, int def){
-        try {
-            return Integer.parseInt(object.get(name).asString());
-        } catch (Exception e){
             return def;
         }
     }

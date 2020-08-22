@@ -9,10 +9,14 @@ import mindustry.net.Host;
 import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.entities.*;
 import net.dv8tion.jda.api.events.guild.member.GuildMemberJoinEvent;
+import net.dv8tion.jda.api.events.guild.member.GuildMemberLeaveEvent;
 import net.dv8tion.jda.api.events.message.MessageReceivedEvent;
-import net.dv8tion.jda.api.events.message.MessageUpdateEvent;
+import net.dv8tion.jda.api.events.message.guild.GenericGuildMessageEvent;
+import net.dv8tion.jda.api.events.message.guild.GuildMessageReceivedEvent;
 import net.dv8tion.jda.api.hooks.ListenerAdapter;
+import org.jetbrains.annotations.NotNull;
 
+import javax.annotation.Nonnull;
 import java.awt.*;
 import java.time.*;
 import java.time.format.DateTimeFormatter;
@@ -65,74 +69,16 @@ public class Messages extends ListenerAdapter{
 
                     embed.setFooter(Strings.format("Last Updated: {0}", DateTimeFormatter.ofPattern("dd MMM yyyy HH:mm:ss ZZZZ").format(ZonedDateTime.now())));
 
-                    guild.getTextChannelById(serverChannelID).editMessageById(746013318623396020L, embed.build()).queue();
+                    jda.getTextChannelById(serverChannelID).editMessageById(746594675795951618L, embed.build()).queue();
                 });
             }, 10, 60, TimeUnit.SECONDS);
-
-            StringBuilder messageBuilder = new StringBuilder();
-
-            server.connect(input -> {
-                if(messageBuilder.length() > 1000){
-                    String text = messageBuilder.toString();
-                    messageBuilder.setLength(0);
-                    guild.getTextChannelById(commandChannelID).sendMessage(text).queue();
-                }else if(messageBuilder.length() == 0){
-                    messageBuilder.append(input);
-                    new Timer().schedule(new TimerTask(){
-                        @Override
-                        public void run(){
-                            if(messageBuilder.length() == 0) return;
-                            String text = messageBuilder.toString();
-                            messageBuilder.setLength(0);
-                            guild.getTextChannelById(commandChannelID).sendMessage(text).queue();
-                        }
-                    }, 60L);
-                }else{
-                    messageBuilder.append("\n").append(input);
-                }
-            });
-
-            Executors.newSingleThreadScheduledExecutor().scheduleAtFixedRate(() -> {
-                Core.net.httpGet("https://raw.githubusercontent.com/Anuken/MindustryMods/master/mods.json", response -> {
-                    if(response.getStatus() != HttpStatus.OK){
-                        return;
-                    }
-
-                    Array<ModListing> listings = new Array<>();//json.fromJson(Array.class, ModListing.class, response.getResultAsString());
-                    listings.sort(Structs.comparing(list -> Date.from(Instant.parse(list.lastUpdated))));
-                    listings.reverse();
-                    listings.truncate(20);
-                    listings.reverse();
-
-                    EmbedBuilder embed = new EmbedBuilder();
-                    embed.setColor(normalColor);
-                    embed.setTitle("Last Updated Mods");
-                    embed.setFooter(Strings.format("Last Updated: {0}", DateTimeFormatter.ofPattern("dd MMM yyyy HH:mm:ss ZZZZ").format(ZonedDateTime.now())));
-                    for(ModListing listing : listings){
-                        embed.addField(listing.repo + "  " + listing.stars + " | "
-                            + "*Updated " + durFormat(Duration.between(Instant.parse(listing.lastUpdated), Instant.now()))+ " ago*",
-                        Strings.format("**[{0}]({1})**\n{2}\n\n_\n_",
-                            Strings.stripColors(listing.name),
-                            "https://github.com/" + listing.repo,
-                            Strings.stripColors(listing.description)), false);
-                    }
-
-                    //guild.getTextChannelById(modChannelID).editMessageById(663246057660219413L, embed.build()).queue();
-                }, Log::err);
-            }, 0, 20, TimeUnit.MINUTES);
         }catch(Exception e){
             throw new RuntimeException(e);
         }
     }
 
-    private static String durFormat(Duration duration){
-        if(duration.toDays() > 0) return duration.toDays() + "d";
-        if(duration.toHours() > 0) return duration.toHours() + "h";
-        return duration.toMinutes() + "m";
-    }
-
     @Override
-    public void onMessageReceived(MessageReceivedEvent event){
+    public void onMessageReceived(MessageReceivedEvent event) {
         try{
             commands.handle(event.getMessage());
         }catch(Exception e){
@@ -141,40 +87,14 @@ public class Messages extends ListenerAdapter{
     }
 
     @Override
-    public void onMessageUpdate(MessageUpdateEvent event){
-        try {
-            commands.edited(event.getMessage());
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-    }
-
-    @Override
     public void onGuildMemberJoin(GuildMemberJoinEvent event){
-        event.getUser().openPrivateChannel().complete().sendMessage(
-        "**Welcome to the Mindustry Discord.**" +
-        "\n\n*Make sure you read #rules and the channel topics before posting.*\n\n" +
-        "**For a list of public servers**, see the #servers channel.\n" +
-        "**Make sure you check out the #faq channel here:**\n<https://discordapp.com/channels/391020510269669376/611204372592066570/611586644402765828>"
-        ).queue();
-    }
-
-    public void sendUpdate(Net.VersionInfo info){
-        String text = info.description;
-        int maxLength = 2000;
-        while(true){
-            String current = text.substring(0, Math.min(maxLength, text.length()));
-            guild
-            .getTextChannelById(announcementsChannelID)
-            .sendMessage(new EmbedBuilder()
-            .setColor(normalColor).setTitle(info.name)
-            .setDescription(current).build()).queue();
-
-            if(text.length() < maxLength){
-                return;
-            }
-
-            text = text.substring(maxLength);
+        if(sendWelcomeMessages) {
+            event.getUser().openPrivateChannel().complete().sendMessage(
+                "**Welcome to the Mindustry Discord.**" +
+                    "\n\n*Make sure you read #rules and the channel topics before posting.*\n\n" +
+                    "**For a list of public servers**, see the #servers channel.\n" +
+                    "**Make sure you check out the #faq channel here:**\n<https://discordapp.com/channels/391020510269669376/611204372592066570/611586644402765828>"
+            ).queue();
         }
     }
 
@@ -190,7 +110,7 @@ public class Messages extends ListenerAdapter{
         }, ReaperBot.messageDeleteTime);
     }
 
-    public void deleteMessage(){
+    public void deleteMessage(){ // удаляет сообщение участника
         Message last = lastSentMessage;
 
         new Timer().schedule(new TimerTask(){
@@ -199,10 +119,6 @@ public class Messages extends ListenerAdapter{
                 last.delete().queue();
             }
         }, ReaperBot.messageDeleteTime);
-    }
-
-    public void logTo(String text, Object... args){
-        jda.getTextChannelById(logChannelID).sendMessage(format(text, args)).queue();
     }
 
     public void text(String text, Object... args){

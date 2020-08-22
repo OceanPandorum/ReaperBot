@@ -1,50 +1,18 @@
 package reaperbot;
 
-import arc.struct.Array;
-import arc.util.Log;
 import arc.util.Strings;
-import arc.util.io.Streams;
-import arc.util.serialization.Json;
-import arc.util.serialization.JsonValue;
 import mindustry.net.Host;
 import mindustry.net.NetworkIO;
 
 import java.io.InputStream;
 import java.net.*;
 import java.nio.ByteBuffer;
-import java.util.concurrent.Executors;
-import java.util.concurrent.TimeUnit;
+import java.util.Timer;
+import java.util.TimerTask;
 import java.util.function.Consumer;
 
 public class Net{
     public static final int timeout = 2000;
-
-    public Net(){
-        Executors.newSingleThreadScheduledExecutor().scheduleAtFixedRate(() ->
-            getChangelog(list -> {
-                try{
-                    VersionInfo latest = list.first();
-
-                    String lastVersion = getLastBuild();
-
-                    if(!latest.build.equals(lastVersion)){
-                        Log.info("Posting update!");
-
-                        //don't post revisions
-                        if(!latest.build.contains(".")){
-                            ReaperBot.messages.sendUpdate(latest);
-                        }
-                        ReaperBot.prefs.put("lastBuild", latest.build);
-                    }
-                }catch(Throwable e){
-                    e.printStackTrace();
-                }
-            }, Log::err), 60, 240, TimeUnit.SECONDS);
-    }
-
-    public String getLastBuild(){
-        return ReaperBot.prefs.get("lastBuild", "101");
-    }
 
     public InputStream download(String url){
         try{
@@ -85,67 +53,19 @@ public class Net{
         });
     }
 
-    public void getChangelog(Consumer<Array<VersionInfo>> success, Consumer<Throwable> fail){
-        try{
-            URL url = new URL(ReaperBot.releasesURL);
-            URLConnection con = url.openConnection();
-            InputStream in = con.getInputStream();
-            String encoding = con.getContentEncoding();
-            encoding = encoding == null ? "UTF-8" : encoding;
-            String body = Streams.copyString(in, 1000, encoding);
-
-            Json j = new Json();
-            Array<JsonValue> list = j.fromJson(null, body);
-            Array<VersionInfo> out = new Array<>();
-            for(JsonValue value : list){
-                String name = value.getString("name");
-                String description = value.getString("body").replace("\r", "");
-                int id = value.getInt("id");
-                String build = value.getString("tag_name").substring(1);
-                out.add(new VersionInfo(name, description, id, build));
-            }
-            success.accept(out);
-        }catch(Throwable e){
-            fail.accept(e);
-        }
-    }
-
-    public static class VersionInfo{
-        public final String name, description, build;
-        public final int id;
-
-        public VersionInfo(String name, String description, int id, String build){
-            this.name = name;
-            this.description = description;
-            this.id = id;
-            this.build = build;
-        }
-
-        @Override
-        public String toString(){
-            return "VersionInfo{" +
-            "name='" + name + '\'' +
-            ", description='" + description + '\'' +
-            ", id=" + id +
-            ", build=" + build +
-            '}';
-        }
-    }
-
     public void run(long delay, Runnable r){
-        /*new Timer().schedule(
+        new Timer().schedule(
         new TimerTask(){
             @Override
             public void run(){
                 r.run();
             }
-        }, delay);*/
+        }, delay);
     }
 
     public Host readServerData(ByteBuffer buffer, String ip, long ping){
         Host host = NetworkIO.readServerData(ip, buffer);
         host.ping = (int)ping;
         return host;
-        //return new PingResult(ip, ping, players + "", host, map, wave + "", version == -1 ? "Custom Build" : (""+version));
     }
 }
