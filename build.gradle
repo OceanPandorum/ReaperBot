@@ -15,8 +15,9 @@ ext{
 }
 
 dependencies {
+    implementation files("lib/connector-j.jar")
     implementation "net.dv8tion:JDA:4.2.0_168"
-    implementation "com.eclipsesource.minimal-json:minimal-json:0.9.5"
+    implementation "org.hjson:hjson:3.0.0"
     implementation "com.github.Anuken.Arc:arc-core:$mindustryVersion"
     implementation "com.github.Anuken.Mindustry:core:$mindustryVersion"
 }

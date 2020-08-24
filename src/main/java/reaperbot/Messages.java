@@ -1,27 +1,20 @@
 package reaperbot;
 
 import arc.Core;
-import arc.Net.HttpStatus;
-import arc.struct.Array;
-import arc.util.*;
-import mindustry.mod.ModListing;
+import arc.util.Log;
+import arc.util.Strings;
 import mindustry.net.Host;
 import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.entities.*;
-import net.dv8tion.jda.api.events.guild.member.GuildMemberJoinEvent;
-import net.dv8tion.jda.api.events.guild.member.GuildMemberLeaveEvent;
 import net.dv8tion.jda.api.events.message.MessageReceivedEvent;
-import net.dv8tion.jda.api.events.message.guild.GenericGuildMessageEvent;
-import net.dv8tion.jda.api.events.message.guild.GuildMessageReceivedEvent;
+import net.dv8tion.jda.api.events.message.react.MessageReactionAddEvent;
 import net.dv8tion.jda.api.hooks.ListenerAdapter;
-import org.jetbrains.annotations.NotNull;
 
 import javax.annotation.Nonnull;
 import java.awt.*;
-import java.time.*;
+import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
-import java.util.Timer;
 import java.util.*;
 import java.util.concurrent.*;
 
@@ -43,7 +36,7 @@ public class Messages extends ListenerAdapter{
             Executors.newSingleThreadScheduledExecutor().scheduleAtFixedRate(() -> {
                 List<Host> results = new CopyOnWriteArrayList<>();
 
-                for(String server : prefs.getArray("servers")){
+                for(String server : config.getServerArray()){
                     net.pingServer(server, results::add);
                 }
 
@@ -54,22 +47,21 @@ public class Messages extends ListenerAdapter{
                     embed.setColor(normalColor);
 
                     for(Host result : results){
-                        if(result.name != null && result.players > 0){
+                        if(result.name != null){
                             embed.addField(result.address,
-                            Strings.format("*{0}*\nPlayers: {1}\nMap: {2}\nWave: {3}\nVersion: {4}\nMode: {5}\nPing: {6}ms\n_\n_\n",
-                            result.name.replace("\\", "\\\\").replace("_", "\\_").replace("*", "\\*").replace("`", "\\`") + (result.description != null && result.description.length() > 0 ? "\n" + result.description : ""),
-                            (result.playerLimit > 0 ? result.players + "/" + result.playerLimit : result.players),
-                            result.mapname.replace("\\", "\\\\").replace("_", "\\_").replace("*", "\\*").replace("`", "\\`").replaceAll("\\[.*?\\]", ""),
-                            result.wave,
-                            result.version,
-                            Strings.capitalize(result.mode.name()),
-                            result.ping), false);
+                            Strings.format("*{0}*\nPlayers: {1}\nMap: {2}\nWave: {3}\nVersion: {4}\nMode: {5}\n_\n_\n",
+                                    result.name.replace("\\", "\\\\").replace("_", "\\_").replace("*", "\\*").replace("`", "\\`"),
+                                    (result.playerLimit > 0 ? result.players + "/" + result.playerLimit : result.players),
+                                    result.mapname.replace("\\", "\\\\").replace("_", "\\_").replace("*", "\\*").replace("`", "\\`").replaceAll("\\[.*?\\]", ""),
+                                    result.wave,
+                                    result.version,
+                                    Strings.capitalize(result.mode.name())), false);
                         }
                     }
 
                     embed.setFooter(Strings.format("Last Updated: {0}", DateTimeFormatter.ofPattern("dd MMM yyyy HH:mm:ss ZZZZ").format(ZonedDateTime.now())));
 
-                    jda.getTextChannelById(serverChannelID).editMessageById(746594675795951618L, embed.build()).queue();
+                    jda.getTextChannelById(serverChannelID).editMessageById(747117737268215882L, embed.build()).queue();
                 });
             }, 10, 60, TimeUnit.SECONDS);
         }catch(Exception e){
@@ -78,24 +70,37 @@ public class Messages extends ListenerAdapter{
     }
 
     @Override
-    public void onMessageReceived(MessageReceivedEvent event) {
+    public void onMessageReceived(@Nonnull MessageReceivedEvent event) {
         try{
-            commands.handle(event.getMessage());
+            commands.handle(event);
         }catch(Exception e){
-            e.printStackTrace();
+            Log.err(e);
         }
     }
 
     @Override
-    public void onGuildMemberJoin(GuildMemberJoinEvent event){
-        if(sendWelcomeMessages) {
-            event.getUser().openPrivateChannel().complete().sendMessage(
-                "**Welcome to the Mindustry Discord.**" +
-                    "\n\n*Make sure you read #rules and the channel topics before posting.*\n\n" +
-                    "**For a list of public servers**, see the #servers channel.\n" +
-                    "**Make sure you check out the #faq channel here:**\n<https://discordapp.com/channels/391020510269669376/611204372592066570/611586644402765828>"
-            ).queue();
+    public void onMessageReactionAdd(@Nonnull MessageReactionAddEvent event) {
+        try {
+            if(event.getChannel().getIdLong() == 747012468576092200L && event.getMessageIdLong() == 747174743320559626L){
+                if (event.getReactionEmote().getName().equals("\uD83C\uDDF7\uD83C\uDDFA")){
+                    event.getGuild().addRoleToMember(event.getUserIdLong(), event.getGuild().getRolesByName("ru", true).get(0)).queue();
+                }else if (event.getReactionEmote().getName().equals("\uD83C\uDDFA\uD83C\uDDF8")){
+                    event.getGuild().addRoleToMember(event.getUserIdLong(), event.getGuild().getRolesByName("en", true).get(0)).queue();
+                }
+            }
+        } catch (Exception e){
+            Log.err(e);
         }
+    }
+
+    public void unMute(long id){
+        EmbedBuilder builder = new EmbedBuilder();
+        builder.setColor(normalColor);
+        builder.addField("Mute", Strings.format("œÓÎ¸ÁÓ‚‡ÚÂÎ¸ **{0}** ·˚Î ‡ÁÏ¸˛˜ÂÌ!", jda.retrieveUserById(id).complete().getName()), true);
+        builder.setFooter(DateTimeFormatter.ofPattern("dd MMM yyyy HH:mm:ss ZZZZ").format(ZonedDateTime.now()));
+
+        commands.roleGuild.removeRoleFromMember(id, jda.getRolesByName("Mute", true).get(0)).queue();
+        jda.getTextChannelById(moderationChannelID).sendMessage(builder.build()).queue();
     }
 
     public void deleteMessages(){
@@ -110,7 +115,7 @@ public class Messages extends ListenerAdapter{
         }, ReaperBot.messageDeleteTime);
     }
 
-    public void deleteMessage(){ // —É–¥–∞–ª—è–µ—Ç —Å–æ–æ–±—â–µ–Ω–∏–µ —É—á–∞—Å—Ç–Ω–∏–∫–∞
+    public void deleteMessage(){
         Message last = lastSentMessage;
 
         new Timer().schedule(new TimerTask(){
@@ -122,12 +127,12 @@ public class Messages extends ListenerAdapter{
     }
 
     public void text(String text, Object... args){
-        lastSentMessage = channel.sendMessage(format(text, args)).complete();
+        lastSentMessage = channel.sendMessage(Strings.format(text, args)).complete();
     }
 
     public void info(String title, String text, Object... args){
         MessageEmbed object = new EmbedBuilder()
-        .addField(title, format(text, args), true).setColor(normalColor).build();
+        .addField(title, Strings.format(text, args), true).setColor(normalColor).build();
 
         lastSentMessage = channel.sendMessage(object).complete();
     }
@@ -138,15 +143,7 @@ public class Messages extends ListenerAdapter{
 
     public void err(String title, String text, Object... args){
         MessageEmbed e = new EmbedBuilder()
-        .addField(title, format(text, args), true).setColor(errorColor).build();
+        .addField(title, Strings.format(text, args), true).setColor(errorColor).build();
         lastSentMessage = channel.sendMessage(e).complete();
-    }
-
-    private String format(String text, Object... args){
-        for(int i = 0; i < args.length; i++){
-            text = text.replace("{" + i + "}", String.valueOf(args[i]));
-        }
-
-        return text;
     }
 }

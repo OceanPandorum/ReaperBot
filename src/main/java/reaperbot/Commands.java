@@ -2,7 +2,6 @@ package reaperbot;
 
 import arc.files.Fi;
 import arc.math.Mathf;
-import arc.struct.Array;
 import arc.util.*;
 import arc.util.CommandHandler.*;
 import arc.util.io.Streams;
@@ -11,14 +10,17 @@ import mindustry.game.Schematic;
 import mindustry.game.Schematics;
 import mindustry.type.ItemStack;
 import net.dv8tion.jda.api.EmbedBuilder;
-import net.dv8tion.jda.api.Permission;
 import net.dv8tion.jda.api.entities.*;
+import net.dv8tion.jda.api.events.message.MessageReceivedEvent;
 
 import javax.imageio.ImageIO;
 import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.FileOutputStream;
-import java.util.*;
+import java.time.ZonedDateTime;
+import java.time.format.DateTimeFormatter;
+import java.util.List;
+import java.util.UUID;
 
 import static reaperbot.ReaperBot.*;
 
@@ -26,10 +28,14 @@ public class Commands{
     private final String prefix = "$";
     private final CommandHandler handler = new CommandHandler(prefix);
     private final CommandHandler adminHandler = new CommandHandler(prefix);
+    private final String[] warningStrings = {"once", "twice", "thrice"};
+
+    public Guild roleGuild;
 
     Commands() {
         handler.register("help", "Displays all bot commands.", args -> {
             StringBuilder builder = new StringBuilder();
+
             for (Command command : handler.getCommandList()) {
                 builder.append(prefix);
                 builder.append("**");
@@ -44,18 +50,7 @@ public class Commands{
                 builder.append(command.description);
                 builder.append("\n");
             }
-
             messages.info("Commands", builder.toString());
-        });
-        handler.register("rule", "<page>", "Displays rules.", args -> {
-            try{
-                Rules rule = Rules.valueOf(args[0]);
-                messages.info(rule.title, rule.text);
-            }catch(IllegalArgumentException e){
-                e.printStackTrace();
-                messages.err("Error", "Invalid topic '{0}'.\nValid topics: *{1}*", args[0], Arrays.toString(Rules.values()));
-                messages.deleteMessages();
-            }
         });
         handler.register("postmap", "Post a .msav file to the #maps--карты channel.", args -> {
             Message message = messages.lastMessage;
@@ -123,7 +118,6 @@ public class Commands{
             }catch(Exception e){
                 message.delete().queue();
                 Log.err("Failed to parse schematic, skipping.");
-                Log.err(e);
             }
         });
         adminHandler.register("delete", "<amount>", "Delete some messages.", args -> {
@@ -136,67 +130,84 @@ public class Commands{
                 messages.err("Invalid number.");
             }
         });
-        /*adminHandler.register("warn", "<@user> [reason...]", "Warn a user.", args -> {
+        adminHandler.register("warn", "<@user> [reason...]", "Warn a user.", args -> {
             String author = args[0].substring(2, args[0].length() - 1);
             if (author.startsWith("!")) author = author.substring(1);
+
             try {
                 long l = Long.parseLong(author);
-                User user = jda.getUserById(l);
-                int warnings = prefs.getWarns(l) + 1;
-                messages.text("**{0}**, you've been warned *{1}*.", user.getName(), warningStrings[Mathf.clamp(warnings - 1, 0, warningStrings.length - 1)]);
-                prefs.put("warnings-" + l, String.valueOf(warnings));
-                if (warnings >= 3) {
-                    messages.guild.getTextChannelById(moderationChannelID)
-                            .sendMessage("User " + user.getAsMention() + " has been warned 3 or more times!").queue();
+                User user = jda.retrieveUserById(l).complete();
+
+                data.addWarn(l);
+
+                int warnings = data.getWarns(l);
+                messages.text("**{0}**, you've been warned *{1}*.", user.getAsMention(), warningStrings[Mathf.clamp(warnings - 1, 0, warningStrings.length - 1)]);
+
+                if (data.getWarns(l) >= 3) {
+                    EmbedBuilder builder = new EmbedBuilder();
+                    builder.setColor(messages.normalColor);
+                    builder.addField("Mute", Strings.format("Пользователь **{0}** замьючен!", user.getName()), true);
+                    builder.setFooter(DateTimeFormatter.ofPattern("dd MMM yyyy HH:mm:ss ZZZZ").format(ZonedDateTime.now()));
+
+                    jda.getTextChannelById(moderationChannelID).sendMessage(builder.build()).queue();
+                    roleGuild.addRoleToMember(user.getIdLong(), jda.getRolesByName("Mute", true).get(0)).queue();
                 }
             } catch (Exception e) {
-                e.printStackTrace();
+                Log.err(e);
                 messages.err("Incorrect name format.");
                 messages.deleteMessages();
             }
-        });*/
-        /*adminHandler.register("warnings", "<@user>", "Get number of warnings a user has.", args -> {
+        });
+        adminHandler.register("warnings", "<@user>", "Get number of warnings a user has.", args -> {
             String author = args[0].substring(2, args[0].length() - 1);
             if (author.startsWith("!")) author = author.substring(1);
             try {
                 long l = Long.parseLong(author);
-                User user = jda.getUserById(l);
-                int warnings = prefs.getWarns(l);
+                User user = jda.retrieveUserById(l).complete();
+                int warnings = data.getWarns(l);
                 messages.text("User '{0}' has **{1}** {2}.", user.getName(), warnings, warnings == 1 ? "warning" : "warnings");
             } catch (Exception e) {
-                e.printStackTrace();
                 messages.err("Incorrect name format.");
                 messages.deleteMessages();
             }
-        });*/
-        /*adminHandler.register("clearwarnings", "<@user>", "Clear number of warnings for a person.", args -> {
+        });
+        adminHandler.register("unwarn", "<@user> [count]", "Unwarn a user.", args -> {
+            if(args.length > 1 && !Strings.canParseInt(args[1])){
+                messages.lastSentMessage.getTextChannel().sendMessage("'count' must be a integer!").queue();
+                messages.deleteMessages();
+                return;
+            }
+
             String author = args[0].substring(2, args[0].length() - 1);
+            int warnings = args.length > 1 ? Strings.parseInt(args[1]) : 1;
             if (author.startsWith("!")) author = author.substring(1);
+
             try {
                 long l = Long.parseLong(author);
-                User user = jda.getUserById(l);
-                prefs.put("warnings-" + l, 0 + "");
-                messages.text("Cleared warnings for user '{0}'.", user.getName());
+                User user = jda.retrieveUserById(l).complete();
+                data.removeWarns(l, warnings);
+
+                messages.text("{0} was removed from {1}", warnings > 1 ? "warnings" : "Warning", user.getName());
             } catch (Exception e) {
-                e.printStackTrace();
                 messages.err("Incorrect name format.");
                 messages.deleteMessages();
             }
-        });*/
+        });
     }
 
-    void handle(Message message){
-        if(message.getAuthor().isBot()) return;
+    void handle(MessageReceivedEvent event){
+        if(event.getAuthor().isBot()) return;
 
-        String text = message.getContentRaw();
+        String text = event.getMessage().getContentRaw();
+        roleGuild = event.getGuild();
 
-        if(message.getContentRaw().startsWith(prefix) && (isAdmin(message.getMember()) || message.getTextChannel().getIdLong() == commandChannelID)){
-            messages.channel = message.getTextChannel();
-            messages.lastUser = message.getAuthor();
-            messages.lastMessage = message;
+        if(event.getMessage().getContentRaw().startsWith(prefix) && (isAdmin(event.getMember()) || event.getTextChannel().getIdLong() == commandChannelID)){
+            messages.channel = event.getTextChannel();
+            messages.lastUser = event.getAuthor();
+            messages.lastMessage = event.getMessage();
         }
 
-        if(isAdmin(message.getMember())){
+        if(isAdmin(event.getMember())){
             boolean unknown = handleResponse(adminHandler.handleMessage(text), false);
             handleResponse(handler.handleMessage(text), !unknown);
         }else{
@@ -206,8 +217,7 @@ public class Commands{
 
     boolean isAdmin(Member member) {
         try {
-            return member.getRoles().stream().anyMatch(r -> r.getIdLong() == 744837465310887996L
-                    || r.getIdLong() == 746448599692345405L);
+            return member.getRoles().stream().anyMatch(r -> r.getIdLong() == ownerRoleID || r.getIdLong() == adminRoleID);
         } catch (Exception e) {
             return false;
         }

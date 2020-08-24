@@ -1,5 +1,11 @@
-# ReaperBot
-A Java bot based off of CoreBot.
-Напишу на русском, а ЧЕ? Имеем право!
-Бот основанный на CoreBot от Anuke(классный чувак,респект ему)
-Можете юзать сколько хотите, мы не жадные
+# О ReaperBot / About ReaperBot
+ReaperBot (Бот жнец/жнец бот) это форк [вот этого бота](https://github.com/Anuken/CoreBot). <br>
+Который был изменён под нужды проекта Pandorum.
+
+
+## Требования / Requirements
+**1.** Mysql драйвер (connector-j).
+Он должке быть в папке tmp<br>
+**2.** JDK 14 или сами меняйте<br>
+**3.** Mysql server (ну а как же)
+

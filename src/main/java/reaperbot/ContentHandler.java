@@ -12,6 +12,7 @@ import arc.graphics.g2d.TextureAtlas.TextureAtlasData;
 import arc.graphics.g2d.TextureAtlas.TextureAtlasData.Page;
 import arc.math.Mathf;
 import arc.struct.*;
+import arc.util.Log;
 import arc.util.Tmp;
 import arc.util.serialization.Base64Coder;
 import mindustry.Vars;
@@ -54,9 +55,7 @@ public class ContentHandler{
             }
         }
 
-        String assets = "content/";
-
-        TextureAtlasData data = new TextureAtlasData(new Fi(assets + "sprites.atlas"), new Fi("content"), false);
+        TextureAtlasData data = new TextureAtlasData(new Fi("content/sprites.atlas"), new Fi("content"), false);
         Core.atlas = new TextureAtlas();
 
         ObjectMap<Page, BufferedImage> images = new ObjectMap<>();
@@ -83,7 +82,7 @@ public class ContentHandler{
                 Core.atlas.addRegion(region.name, region);
                 regions.put(region.name, image);
             }catch(Exception e){
-                e.printStackTrace();
+                Log.err(e);
             }
         });
 
@@ -121,13 +120,13 @@ public class ContentHandler{
                 try{
                     content.load();
                 }catch(Throwable e){
-                    e.printStackTrace();
+                    Log.err(e);
                 }
             }
         }
 
         try{
-            BufferedImage image = ImageIO.read(new File(assets + "block_colors.png"));
+            BufferedImage image = ImageIO.read(new File("content/block_colors.png"));
 
             for(Block block : Vars.content.blocks()){
                 block.color.argb8888(image.getRGB(block.id, 0));
