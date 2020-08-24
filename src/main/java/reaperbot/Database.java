@@ -38,7 +38,7 @@ public class Database {
     }
 
     private String muteDate(){
-        return String.format("%s-%s-%s", LocalDateTime.now().getMinute(), LocalDateTime.now().getHour() + 6, LocalDateTime.now().getDayOfMonth());
+        return String.format("%s-%s-%s", LocalDateTime.now().getDayOfMonth(), LocalDateTime.now().getHour() + 6, LocalDateTime.now().getMinute());
     }
 
     public void addWarn(long id){

@@ -41,7 +41,7 @@ public class MuteDaemon extends Thread{
     public boolean check(String time){
         try {
             long timeSum = Integer.parseInt(time.replaceAll("-", ""));
-            long currentSum = Integer.parseInt(String.format("%s%s%s", LocalDateTime.now().getMinute(), LocalDateTime.now().getHour(), LocalDateTime.now().getDayOfMonth()));
+            long currentSum = Integer.parseInt(String.format("%s%s%s", LocalDateTime.now().getDayOfMonth(), LocalDateTime.now().getHour(), LocalDateTime.now().getMinute()));
             return currentSum >= timeSum;
         }catch (Exception e){
             return false;
