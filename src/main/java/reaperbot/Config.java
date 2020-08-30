@@ -5,41 +5,32 @@ import arc.struct.Array;
 import org.hjson.*;
 
 public class Config {
-    private JsonObject object;
-    private JsonArray servers;
+    private final Fi prefsFile = new Fi("prefs.json");
 
-    public Config(Fi file){
+    public Array<String> getArray(String name){
         try{
-            object = JsonValue.readJSON(file.readString()).asObject();
-            servers = object.get("servers").asArray();
-        }catch(Exception e){
-            object = new JsonObject();
-            servers = new JsonArray();
-
-            object.add("servers", servers);
-            file.writeString(object.toString());
-        }
-    }
-
-    public Array<String> getServerArray(){
-        try {
+            JsonArray array = JsonValue.readJSON(prefsFile.readString()).asObject().get(name).asArray();
             Array<String> strings = new Array<>();
-            servers.forEach(s -> strings.add(s.asString()));
+            array.forEach(s -> strings.add(s.asString()));
             return strings;
-        } catch (Exception e) {
+        }catch (Exception e){
             return Array.with("");
         }
     }
 
-    public String get(String name, String def){
-        try {
-            return object.get(name).asString();
+    public JsonArray getJArray(String name){
+        try{
+            return JsonValue.readJSON(prefsFile.readString()).asObject().get(name).asArray();
         }catch (Exception e){
-            return def;
+            return new JsonArray();
         }
     }
 
     public String get(String name){
-        return get(name, "");
+        try{
+            return JsonValue.readJSON(prefsFile.readString()).asObject().get(name).asString();
+        }catch(Exception e){
+            return "";
+        }
     }
 }

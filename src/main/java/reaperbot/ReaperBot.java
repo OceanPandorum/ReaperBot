@@ -25,8 +25,7 @@ public class ReaperBot {
     public static final long adminRoleID = 746448599692345405L;
 
     public static final long messageDeleteTime = 20000; // 20 секунд
-    public static final long guildID = 741011186916524213L; // id бота
-    public static final Fi prefsFile = new Fi("prefs.json");
+    public static final long guildID = 744814929701240882L; // id сервера
 
     public static JDA jda;
 
@@ -39,8 +38,6 @@ public class ReaperBot {
 
     public static void main(String[] args) throws InterruptedException, LoginException {
         init();
-        data.connect();
-        data.init();
 
         String token;
         if(System.getProperty("token") != null){
@@ -58,15 +55,15 @@ public class ReaperBot {
 
         Log.info("Discord bot up.");
 
-        new MuteDaemon();
+        if(args.length > 0 && args[0].equalsIgnoreCase("-info")) messages.sendInfo();
     }
 
     public static void init(){
+        config = new Config();
         contentHandler = new ContentHandler();
         messages = new Messages();
         commands = new Commands();
         net = new Net();
-        config = new Config(prefsFile);
         data = new Database();
     }
 }

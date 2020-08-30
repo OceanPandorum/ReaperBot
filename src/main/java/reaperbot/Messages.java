@@ -9,6 +9,7 @@ import net.dv8tion.jda.api.entities.*;
 import net.dv8tion.jda.api.events.message.MessageReceivedEvent;
 import net.dv8tion.jda.api.events.message.react.MessageReactionAddEvent;
 import net.dv8tion.jda.api.hooks.ListenerAdapter;
+import org.hjson.JsonValue;
 
 import javax.annotation.Nonnull;
 import java.awt.*;
@@ -36,7 +37,7 @@ public class Messages extends ListenerAdapter{
             Executors.newSingleThreadScheduledExecutor().scheduleAtFixedRate(() -> {
                 List<Host> results = new CopyOnWriteArrayList<>();
 
-                for(String server : config.getServerArray()){
+                for(String server : config.getArray("servers")){
                     net.pingServer(server, results::add);
                 }
 
@@ -69,10 +70,23 @@ public class Messages extends ListenerAdapter{
         }
     }
 
+    public void sendInfo(){
+        for(JsonValue v : config.getJArray("info")){
+            String title = v.asObject().get("title").asString();
+            String description = v.asObject().get("description").asString();
+            String channelId = v.asObject().get("channel-id").asString();
+
+            MessageEmbed e = new EmbedBuilder()
+                    .addField(title, description, true).setColor(normalColor).build();
+
+            guild.getTextChannelById(channelId).sendMessage(e).queue();
+        }
+    }
+
     @Override
     public void onMessageReceived(@Nonnull MessageReceivedEvent event) {
         try{
-            commands.handle(event);
+            if(!event.getAuthor().isBot()) commands.handle(event);
         }catch(Exception e){
             Log.err(e);
         }
@@ -91,16 +105,6 @@ public class Messages extends ListenerAdapter{
         } catch (Exception e){
             Log.err(e);
         }
-    }
-
-    public void unMute(long id){
-        EmbedBuilder builder = new EmbedBuilder();
-        builder.setColor(normalColor);
-        builder.addField("Mute", Strings.format("Пользователь **{0}** был размьючен!", jda.retrieveUserById(id).complete().getName()), true);
-        builder.setFooter(DateTimeFormatter.ofPattern("dd MMM yyyy HH:mm:ss ZZZZ").format(ZonedDateTime.now()));
-
-        commands.roleGuild.removeRoleFromMember(id, jda.getRolesByName("Mute", true).get(0)).queue();
-        jda.getTextChannelById(moderationChannelID).sendMessage(builder.build()).queue();
     }
 
     public void deleteMessages(){
