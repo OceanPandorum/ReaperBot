@@ -10,11 +10,11 @@ import static reaperbot.ReaperBot.config;
 public class Database {
     private Connection con;
 
-    public void connect(){
+    public Database(){
         try {
             Class.forName("com.mysql.cj.jdbc.Driver");
             con = DriverManager.getConnection(config.get("db-address"), config.get("db-username"), config.get("db-password"));
-            Log.info("The database connection is made.");
+            Log.info("Connecting to database...");
             init();
         }catch (SQLException | ClassNotFoundException e){
             Log.err(e);
