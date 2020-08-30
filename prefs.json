@@ -1,0 +1,16 @@
+{
+  "db-address": "",
+  "db-username": "",
+  "db-password": "",
+  "token": "",
+  "servers": [
+  	""
+  ],
+  "info": [
+    {
+      "title": "",
+      "description": "",
+      "channel-id": ""
+    }
+  ]
+}
