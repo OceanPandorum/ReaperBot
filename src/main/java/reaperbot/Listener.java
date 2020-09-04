@@ -98,13 +98,13 @@ public class Listener extends ListenerAdapter{
     @Override
     public void onMessageReactionAdd(@Nonnull MessageReactionAddEvent event) {
         try{
-            if(event.getChannel().getIdLong() == 747012468576092200L && event.getMessageIdLong() == 747174743320559626L){
+            /*if(event.getChannel().getIdLong() == 747012468576092200L && event.getMessageIdLong() == 747174743320559626L){
                 if (event.getReactionEmote().getName().equals("\uD83C\uDDF7\uD83C\uDDFA")){
                     event.getGuild().addRoleToMember(event.getUserIdLong(), event.getGuild().getRolesByName("ru", true).get(0)).queue();
                 }else if (event.getReactionEmote().getName().equals("\uD83C\uDDFA\uD83C\uDDF8")){
                     event.getGuild().addRoleToMember(event.getUserIdLong(), event.getGuild().getRolesByName("en", true).get(0)).queue();
                 }
-            }
+            }*/
         }catch(Exception e){
             Log.err(e);
         }

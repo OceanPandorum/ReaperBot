@@ -45,7 +45,7 @@ public class Commands{
             }
             listener.info("Commands", builder.toString());
         });
-        handler.register("postmap", "Post a .msav file to the #maps--����� channel.", args -> {
+        handler.register("postmap", "Post a .msav file.", args -> {
             Message message = listener.lastMessage;
 
             if(message.getAttachments().size() != 1 || !message.getAttachments().get(0).getFileName().endsWith(".msav")){
@@ -118,7 +118,9 @@ public class Commands{
     void handle(MessageReceivedEvent event){
         String text = event.getMessage().getContentRaw();
 
-        if(event.getMessage().getContentRaw().startsWith(prefix) && event.getTextChannel().getIdLong() == commandChannelID){
+        if(event.getChannel().getIdLong() != commandChannelID) return;
+
+        if(event.getMessage().getContentRaw().startsWith(prefix)){
             listener.channel = event.getTextChannel();
             listener.lastUser = event.getAuthor();
             listener.lastMessage = event.getMessage();
