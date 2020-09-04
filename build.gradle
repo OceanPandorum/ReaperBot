@@ -15,7 +15,6 @@ ext{
 }
 
 dependencies {
-    implementation files("lib/connector-j.jar")
     implementation "net.dv8tion:JDA:4.2.0_168"
     implementation "org.hjson:hjson:3.0.0"
     implementation "com.github.Anuken.Arc:arc-core:$mindustryVersion"

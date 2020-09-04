@@ -14,14 +14,6 @@ public class ReaperBot {
     public static final long commandChannelID = 744874986073751584L;
     public static final long mapsChannelID = 744906782370955274L;
     public static final long schematicsChannelID = 744906867183976569L;
-    public static final long moderationChannelID = 746007302900809768L;
-
-    /*
-     * id ролей
-     */
-    public static final long muteRoleID = 745156292989026334L;
-    public static final long ownerRoleID = 744837465310887996L;
-    public static final long adminRoleID = 746448599692345405L;
 
     public static final long messageDeleteTime = 20000; // 20 секунд
     public static final long guildID = 744814929701240882L; // id сервера
@@ -33,7 +25,6 @@ public class ReaperBot {
     public static Commands commands;
     public static Net net;
     public static Config config;
-    public static Database data;
 
     public static void main(String[] args) throws InterruptedException, LoginException {
         init();
@@ -63,6 +54,5 @@ public class ReaperBot {
         listener = new Listener();
         commands = new Commands();
         net = new Net();
-        data = new Database();
     }
 }

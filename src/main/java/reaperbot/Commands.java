@@ -24,7 +24,6 @@ import static reaperbot.ReaperBot.*;
 public class Commands{
     private final String prefix = "$";
     private final CommandHandler handler = new CommandHandler(prefix);
-    private final CommandHandler adminHandler = new CommandHandler(prefix);
 
     Commands() {
         handler.register("help", "Displays all bot commands.", args -> {
@@ -46,7 +45,7 @@ public class Commands{
             }
             listener.info("Commands", builder.toString());
         });
-        handler.register("postmap", "Post a .msav file to the #maps channel.", args -> {
+        handler.register("postmap", "Post a .msav file to the #maps--����� channel.", args -> {
             Message message = listener.lastMessage;
 
             if(message.getAttachments().size() != 1 || !message.getAttachments().get(0).getFileName().endsWith(".msav")){
@@ -80,7 +79,7 @@ public class Commands{
                 listener.deleteMessages();
             }
         });
-        handler.register("postschem", "[schem]", "Post a .msch to the #schematics channel.", args -> {
+        handler.register("postschem", "[schem]", "Post a .msch.", args -> {
             Message message = listener.lastMessage;
 
             try{
@@ -114,50 +113,24 @@ public class Commands{
                 Log.err("Failed to parse schematic, skipping.");
             }
         });
-        adminHandler.register("delete", "<amount>", "Delete some messages.", args -> {
-            try {
-                int number = Integer.parseInt(args[0]) + 1;
-                MessageHistory hist = listener.channel.getHistoryBefore(listener.lastMessage, number).complete();
-                listener.channel.deleteMessages(hist.getRetrievedHistory()).queue();
-                Log.info("Deleted {0} messages.", number);
-            } catch (NumberFormatException e) {
-                listener.err("Invalid number.");
-            }
-        });
     }
 
     void handle(MessageReceivedEvent event){
         String text = event.getMessage().getContentRaw();
 
-        if(event.getMessage().getContentRaw().startsWith(prefix) && (isAdmin(event.getMember()) || event.getTextChannel().getIdLong() == commandChannelID)){
+        if(event.getMessage().getContentRaw().startsWith(prefix) && event.getTextChannel().getIdLong() == commandChannelID){
             listener.channel = event.getTextChannel();
             listener.lastUser = event.getAuthor();
             listener.lastMessage = event.getMessage();
         }
 
-        if(isAdmin(event.getMember())){
-            boolean unknown = handleResponse(adminHandler.handleMessage(text), false);
-            handleResponse(handler.handleMessage(text), !unknown);
-        }else{
-            handleResponse(handler.handleMessage(text), true);
-        }
+        handleResponse(handler.handleMessage(text));
     }
 
-    boolean isAdmin(Member member) {
-        try {
-            return member.getRoles().stream().anyMatch(r -> r.getIdLong() == ownerRoleID || r.getIdLong() == adminRoleID);
-        } catch (Exception e) {
-            return false;
-        }
-    }
-
-    boolean handleResponse(CommandResponse response, boolean logUnknown){
+    void handleResponse(CommandResponse response){
         if(response.type == ResponseType.unknownCommand){
-            if(logUnknown){
-                listener.err("Unknown command. Type " + prefix + "help for a list of commands.");
-                listener.deleteMessages();
-            }
-            return false;
+            listener.err("Unknown command. Type " + prefix + "help for a list of commands.");
+            listener.deleteMessages();
         }else if(response.type == ResponseType.manyArguments || response.type == ResponseType.fewArguments){
             if(response.command.params.length == 0){
                 listener.err("Invalid arguments.", "Usage: {0}{1}", prefix, response.command.text);
@@ -165,8 +138,6 @@ public class Commands{
                 listener.err("Invalid arguments.", "Usage: {0}{1} *{2}*", prefix, response.command.text, response.command.paramText);
             }
             listener.deleteMessages();
-            return false;
         }
-        return true;
     }
 }
