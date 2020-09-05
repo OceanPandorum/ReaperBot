@@ -5,6 +5,9 @@ import arc.util.Log;
 import net.dv8tion.jda.api.JDABuilder;
 
 import javax.security.auth.login.LoginException;
+import java.io.IOException;
+import java.net.ServerSocket;
+import java.net.Socket;
 
 public class ReaperBot {
     /*
@@ -18,6 +21,8 @@ public class ReaperBot {
     public static final long messageDeleteTime = 20000; // 20 секунд
     public static final long guildID = 744814929701240882L; // id сервера
 
+    public static final int socketPort = 8080;
+
     public static Fi configFile = new Fi("prefs.json");
 
     public static ContentHandler contentHandler;
@@ -25,16 +30,12 @@ public class ReaperBot {
     public static Commands commands;
     public static Net net;
     public static Config config;
+    public static Service service;
 
-    public static void main(String[] args) throws InterruptedException, LoginException {
+    public static void main(String[] args) throws InterruptedException, LoginException, IOException {
         init();
 
-        String token;
-        if(System.getProperty("token") != null){
-            token = System.getProperty("token");
-        }else{
-            token = config.get("token");
-        }
+        String token = System.getProperty("token") != null ? System.getProperty("token") : config.get("token");
 
         listener.jda = JDABuilder.createDefault(token)
                 .addEventListeners(listener)
@@ -45,10 +46,22 @@ public class ReaperBot {
 
         Log.info("Discord bot up.");
 
+        ServerSocket server = new ServerSocket(socketPort);
+
+        Log.info("Socket server up.");
+
+        Socket socket = server.accept();
+
+        try {
+            service = new Service(socket);
+        } catch (IOException e) {
+            service.shutdown();
+        }
+
         if(args.length > 0 && args[0].equalsIgnoreCase("-info")) listener.sendInfo();
     }
 
-    public static void init(){
+    private static void init() {
         config = new Config();
         contentHandler = new ContentHandler();
         listener = new Listener();

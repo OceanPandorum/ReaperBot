@@ -14,8 +14,7 @@ import net.dv8tion.jda.api.events.message.MessageReceivedEvent;
 
 import javax.imageio.ImageIO;
 import java.awt.image.BufferedImage;
-import java.io.File;
-import java.io.FileOutputStream;
+import java.io.*;
 import java.util.List;
 import java.util.UUID;
 
@@ -26,6 +25,13 @@ public class Commands{
     private final CommandHandler handler = new CommandHandler(prefix);
 
     Commands() {
+        /*handler.register("s", "serverinfo", args -> {
+            try {
+                listener.channel.sendMessage("status wl server`AAA: " + service.get()).queue();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        });*/
         handler.register("help", "Displays all bot commands.", args -> {
             StringBuilder builder = new StringBuilder();
 
