@@ -21,14 +21,6 @@ dependencies {
     implementation "com.github.Anuken.Mindustry:core:$mindustryVersion"
 }
 
-
-task run(dependsOn: classes, type: JavaExec) {
-    if (project.hasProperty("token")) systemProperty "token", project.getProperty("token")
-    main = project.mainClassName
-    classpath = sourceSets.main.runtimeClasspath
-    standardInput = System.in
-}
-
 task dist(type: Jar) {
     manifest{
         attributes 'Main-Class': project.mainClassName

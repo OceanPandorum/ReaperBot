@@ -38,6 +38,7 @@ import static mindustry.Vars.content;
 import static mindustry.Vars.world;
 
 public class ContentHandler{
+
     public static final byte[] mapHeader = {77, 83, 65, 86};
 
     Graphics2D currentGraphics;

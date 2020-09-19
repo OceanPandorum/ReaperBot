@@ -1,6 +1,7 @@
 package reaperbot;
 
 import arc.Core;
+import arc.struct.ObjectMap;
 import arc.util.Log;
 import arc.util.Strings;
 import mindustry.net.Host;
@@ -31,6 +32,9 @@ public class Listener extends ListenerAdapter{
     Message lastSentMessage;
     Color normalColor = Color.decode("#b9fca6");
     Color errorColor = Color.decode("#ff3838");
+
+    ObjectMap<Long, boolean[]> temp = new ObjectMap<>();
+    long[] roleMessages = {752178728586707094L, 752178728963932270L};
 
     public Listener(){
         try{
@@ -78,8 +82,7 @@ public class Listener extends ListenerAdapter{
             String description = v.asObject().get("description").asString();
             String channelId = v.asObject().get("channel-id").asString();
 
-            MessageEmbed e = new EmbedBuilder()
-                    .addField(title, description, true).setColor(normalColor).build();
+            MessageEmbed e = new EmbedBuilder().addField(title, description, true).setColor(normalColor).build();
 
             guild.getTextChannelById(channelId).sendMessage(e).queue();
         }
@@ -98,15 +101,22 @@ public class Listener extends ListenerAdapter{
     @Override
     public void onMessageReactionAdd(@Nonnull MessageReactionAddEvent event) {
         try{
-            /*if(event.getChannel().getIdLong() == 747012468576092200L && event.getMessageIdLong() == 747174743320559626L){
-                if (event.getReactionEmote().getName().equals("\uD83C\uDDF7\uD83C\uDDFA")){
-                    event.getGuild().addRoleToMember(event.getUserIdLong(), event.getGuild().getRolesByName("ru", true).get(0)).queue();
-                }else if (event.getReactionEmote().getName().equals("\uD83C\uDDFA\uD83C\uDDF8")){
-                    event.getGuild().addRoleToMember(event.getUserIdLong(), event.getGuild().getRolesByName("en", true).get(0)).queue();
-                }
-            }*/
+            boolean[] b = !temp.containsKey(event.getUserIdLong()) ? new boolean[2] : temp.get(event.getUserIdLong());
+            if(roleMessages[0] == event.getMessageIdLong())
+                b[0] = true;
+            else if(roleMessages[1] == event.getMessageIdLong())
+                b[1] = true;
+            temp.put(event.getUserIdLong(), b);
+            accept(event.getUserIdLong());
         }catch(Exception e){
             Log.err(e);
+        }
+    }
+
+    private void accept(long id){
+        if(temp.get(id)[0] && temp.get(id)[1]){
+            guild.addRoleToMember(id, guild.getRoleById(747908856604262469L)).queue();
+            temp.remove(id);
         }
     }
 

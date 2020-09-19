@@ -15,7 +15,7 @@ public class Config {
             array.forEach(s -> strings.add(s.asString()));
             return strings;
         }catch (Exception e){
-            return Array.with("");
+            return new Array<>();
         }
     }
 
@@ -28,10 +28,6 @@ public class Config {
     }
 
     public String get(String name){
-        try{
-            return JsonValue.readJSON(configFile.readString()).asObject().get(name).asString();
-        }catch(Exception e){
-            return "";
-        }
+        return JsonValue.readJSON(configFile.readString()).asObject().getString(name, "");
     }
 }

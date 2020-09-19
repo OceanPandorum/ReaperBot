@@ -25,13 +25,6 @@ public class Commands{
     private final CommandHandler handler = new CommandHandler(prefix);
 
     Commands() {
-        /*handler.register("s", "serverinfo", args -> {
-            try {
-                listener.channel.sendMessage("status wl server`AAA: " + service.get()).queue();
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-        });*/
         handler.register("help", "Displays all bot commands.", args -> {
             StringBuilder builder = new StringBuilder();
 
@@ -124,7 +117,7 @@ public class Commands{
     void handle(MessageReceivedEvent event){
         String text = event.getMessage().getContentRaw();
 
-        if(event.getChannel().getIdLong() != commandChannelID) return;
+        if(event.getChannel().getIdLong() != commandChannelID && !isAdmin(event.getMember())) return;
 
         if(event.getMessage().getContentRaw().startsWith(prefix)){
             listener.channel = event.getTextChannel();
@@ -133,6 +126,14 @@ public class Commands{
         }
 
         handleResponse(handler.handleMessage(text));
+    }
+
+    boolean isAdmin(Member member){
+        try{
+            return member.getRoles().stream().anyMatch(r -> r.getIdLong() == 744837465310887996L || r.getIdLong() == 747899862389096640L);
+        }catch (Exception e){
+            return false;
+        }
     }
 
     void handleResponse(CommandResponse response){

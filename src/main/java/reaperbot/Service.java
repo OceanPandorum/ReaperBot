@@ -5,7 +5,11 @@ import arc.util.Log;
 import java.io.*;
 import java.net.Socket;
 
+/*
+ * TODO отдельно сделать и подрубить к плагинам и боту
+ */
 public class Service {
+
     public Socket socket;
     public BufferedReader in;
     public BufferedWriter out;

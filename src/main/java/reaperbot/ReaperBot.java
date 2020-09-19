@@ -10,9 +10,7 @@ import java.net.ServerSocket;
 import java.net.Socket;
 
 public class ReaperBot {
-    /*
-     * id каналов
-     */
+
     public static final long serverChannelID = 746000026269909002L;
     public static final long commandChannelID = 744874986073751584L;
     public static final long mapsChannelID = 744906782370955274L;
@@ -35,9 +33,7 @@ public class ReaperBot {
     public static void main(String[] args) throws InterruptedException, LoginException, IOException {
         init();
 
-        String token = System.getProperty("token") != null ? System.getProperty("token") : config.get("token");
-
-        listener.jda = JDABuilder.createDefault(token)
+        listener.jda = JDABuilder.createDefault(config.get("token"))
                 .addEventListeners(listener)
                 .build();
         listener.jda.awaitReady();
@@ -45,6 +41,8 @@ public class ReaperBot {
         listener.guild = listener.jda.getGuildById(guildID);
 
         Log.info("Discord bot up.");
+
+        if(args.length > 0 && args[0].equalsIgnoreCase("-info")) listener.sendInfo();
 
         ServerSocket server = new ServerSocket(socketPort);
 
@@ -57,8 +55,6 @@ public class ReaperBot {
         } catch (IOException e) {
             service.shutdown();
         }
-
-        if(args.length > 0 && args[0].equalsIgnoreCase("-info")) listener.sendInfo();
     }
 
     private static void init() {
