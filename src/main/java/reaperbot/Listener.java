@@ -48,7 +48,11 @@ public class Listener extends ListenerAdapter{
                 }
 
                 net.run(Net.timeout, () -> {
-                    results.sort((a, b) -> a.name != null && b.name == null ? 1 : a.name == null && b.name != null ? -1 : Integer.compare(a.players, b.players));
+                    results.sort((a, b) -> a.name != null && b.name == null
+                            ? 1
+                            : a.name == null && b.name != null
+                            ? -1
+                            : Integer.compare(a.players, b.players));
 
                     EmbedBuilder embed = new EmbedBuilder();
                     embed.setColor(normalColor);
@@ -56,17 +60,25 @@ public class Listener extends ListenerAdapter{
                     for(Host result : results){
                         if(result.name != null){
                             embed.addField(result.address,
-                            Strings.format("*{0}*\nPlayers: {1}\nMap: {2}\nWave: {3}\nVersion: {4}\nMode: {5}\n_\n_\n",
-                                    result.name.replace("\\", "\\\\").replace("_", "\\_").replace("*", "\\*").replace("`", "\\`"),
-                                    (result.playerLimit > 0 ? result.players + "/" + result.playerLimit : result.players),
-                                    result.mapname.replace("\\", "\\\\").replace("_", "\\_").replace("*", "\\*").replace("`", "\\`").replaceAll("\\[.*?\\]", ""),
-                                    result.wave,
-                                    result.version,
-                                    Strings.capitalize(result.mode.name())), false);
+                                    Strings.format("*{0}*\n{1}: {2}\n{3}: {4}\n{5}: {6}\n{7}: {8}\n{9}: {10}\n_\n_\n",
+                                            result.name.replace("\\", "\\\\").replace("_", "\\_")
+                                                       .replace("*", "\\*").replace("`", "\\`"),
+                                            bundle.get("listener.players"),
+                                            (result.playerLimit > 0 ? result.players + "/" + result.playerLimit : result.players),
+                                            bundle.get("listener.map"),
+                                            result.mapname.replace("\\", "\\\\").replace("_", "\\_")
+                                                          .replace("*", "\\*").replace("`", "\\`")
+                                                          .replaceAll("\\[.*?\\]", ""),
+                                            bundle.get("listener.wave"),
+                                            result.wave,
+                                            bundle.get("listener.version"),
+                                            result.version,
+                                            bundle.get("listener.mode"),
+                                            Strings.capitalize(result.mode.name())), false);
                         }
                     }
 
-                    embed.setFooter(Strings.format("Last Updated: {0}", DateTimeFormatter.ofPattern("dd MMM yyyy HH:mm:ss ZZZZ").format(ZonedDateTime.now())));
+                    embed.setFooter(bundle.format("listener.servers.last-update", DateTimeFormatter.ofPattern("dd MMM yyyy HH:mm:ss ZZZZ").format(ZonedDateTime.now())));
 
                     jda.getTextChannelById(serverChannelID).editMessageById(747117737268215882L, embed.build()).queue();
                 });
@@ -82,7 +94,7 @@ public class Listener extends ListenerAdapter{
             String description = v.asObject().get("description").asString();
             String channelId = v.asObject().get("channel-id").asString();
 
-            MessageEmbed e = new EmbedBuilder().addField(title, description, true).setColor(normalColor).build();
+            MessageEmbed e = new EmbedBuilder().setTitle(title).setDescription(description).setColor(normalColor).build();
 
             guild.getTextChannelById(channelId).sendMessage(e).queue();
         }
@@ -90,7 +102,7 @@ public class Listener extends ListenerAdapter{
     }
 
     @Override
-    public void onMessageReceived(@Nonnull MessageReceivedEvent event) {
+    public void onMessageReceived(@Nonnull MessageReceivedEvent event){
         try{
             if(!event.getAuthor().isBot()) commands.handle(event);
         }catch(Exception e){
@@ -99,7 +111,7 @@ public class Listener extends ListenerAdapter{
     }
 
     @Override
-    public void onMessageReactionAdd(@Nonnull MessageReactionAddEvent event) {
+    public void onMessageReactionAdd(@Nonnull MessageReactionAddEvent event){
         try{
             boolean[] b = !temp.containsKey(event.getUserIdLong()) ? new boolean[2] : temp.get(event.getUserIdLong());
             if(roleMessages[0] == event.getMessageIdLong())
@@ -111,6 +123,15 @@ public class Listener extends ListenerAdapter{
         }catch(Exception e){
             Log.err(e);
         }
+    }
+
+    public String correctName(User user){
+        String name = user.getName();
+        Member member = listener.guild.retrieveMember(user).complete();
+        if(member.getNickname() != null){
+            name += " / " + member.getNickname();
+        }
+        return name;
     }
 
     private void accept(long id){
@@ -138,18 +159,18 @@ public class Listener extends ListenerAdapter{
 
     public void info(String title, String text, Object... args){
         MessageEmbed object = new EmbedBuilder()
-        .addField(title, Strings.format(text, args), true).setColor(normalColor).build();
+                .setTitle(title).setDescription(Strings.format(text, args)).setColor(normalColor).build();
 
         lastSentMessage = channel.sendMessage(object).complete();
     }
 
     public void err(String text, Object... args){
-        err("Error", text, args);
+        err(bundle.get("listener.error"), text, args);
     }
 
     public void err(String title, String text, Object... args){
         MessageEmbed e = new EmbedBuilder()
-        .addField(title, Strings.format(text, args), true).setColor(errorColor).build();
+                .setTitle(title).setDescription(Strings.format(text, args)).setColor(errorColor).build();
         lastSentMessage = channel.sendMessage(e).complete();
     }
 }

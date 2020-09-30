@@ -1,15 +1,15 @@
 package reaperbot;
 
+import arc.Files;
 import arc.files.Fi;
+import arc.util.I18NBundle;
 import arc.util.Log;
 import net.dv8tion.jda.api.JDABuilder;
 
 import javax.security.auth.login.LoginException;
-import java.io.IOException;
-import java.net.ServerSocket;
-import java.net.Socket;
+import java.util.Locale;
 
-public class ReaperBot {
+public class ReaperBot{
 
     public static final long serverChannelID = 746000026269909002L;
     public static final long commandChannelID = 744874986073751584L;
@@ -19,8 +19,6 @@ public class ReaperBot {
     public static final long messageDeleteTime = 20000; // 20 секунд
     public static final long guildID = 744814929701240882L; // id сервера
 
-    public static final int socketPort = 8080;
-
     public static Fi configFile = new Fi("prefs.json");
 
     public static ContentHandler contentHandler;
@@ -28,9 +26,9 @@ public class ReaperBot {
     public static Commands commands;
     public static Net net;
     public static Config config;
-    public static Service service;
+    public static I18NBundle bundle;
 
-    public static void main(String[] args) throws InterruptedException, LoginException, IOException {
+    public static void main(String[] args) throws InterruptedException, LoginException{
         init();
 
         listener.jda = JDABuilder.createDefault(config.get("token"))
@@ -43,22 +41,11 @@ public class ReaperBot {
         Log.info("Discord bot up.");
 
         if(args.length > 0 && args[0].equalsIgnoreCase("-info")) listener.sendInfo();
-
-        ServerSocket server = new ServerSocket(socketPort);
-
-        Log.info("Socket server up.");
-
-        Socket socket = server.accept();
-
-        try {
-            service = new Service(socket);
-        } catch (IOException e) {
-            service.shutdown();
-        }
     }
 
-    private static void init() {
+    private static void init(){
         config = new Config();
+        bundle = I18NBundle.createBundle(new Fi("bundle", Files.FileType.classpath), new Locale(""), "Windows-1251");
         contentHandler = new ContentHandler();
         listener = new Listener();
         commands = new Commands();

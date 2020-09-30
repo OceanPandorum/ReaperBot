@@ -64,7 +64,7 @@ public class Net{
 
     public Host readServerData(ByteBuffer buffer, String ip, long ping){
         Host host = NetworkIO.readServerData(ip, buffer);
-        host.ping = (int)ping;
+        host.ping = (int) ping;
         return host;
     }
 }

@@ -44,7 +44,7 @@ public class ContentHandler{
     Graphics2D currentGraphics;
     BufferedImage currentImage;
 
-    public ContentHandler() {
+    public ContentHandler(){
         Version.enabled = false;
         Vars.content = new ContentLoader();
         Vars.content.createBaseContent();
@@ -100,19 +100,19 @@ public class ContentHandler{
                 width *= 4;
                 height *= 4;
 
-                y = currentImage.getHeight() - (y + height/2f) - height/2f;
+                y = currentImage.getHeight() - (y + height / 2f) - height / 2f;
 
                 AffineTransform at = new AffineTransform();
                 at.translate(x, y);
                 at.rotate(-rotation * Mathf.degRad, originX * 4, originY * 4);
 
                 currentGraphics.setTransform(at);
-                BufferedImage image = regions.get(((AtlasRegion)region).name);
+                BufferedImage image = regions.get(((AtlasRegion) region).name);
                 if(!color.equals(Color.white)){
                     image = tint(image, color);
                 }
 
-                currentGraphics.drawImage(image, 0, 0, (int)width, (int)height, null);
+                currentGraphics.drawImage(image, 0, 0, (int) width, (int) height, null);
             }
         };
 
@@ -132,7 +132,7 @@ public class ContentHandler{
             for(Block block : Vars.content.blocks()){
                 block.color.argb8888(image.getRGB(block.id, 0));
                 if(block instanceof OreBlock){
-                    block.color.set(((OreBlock)block).itemDrop.color);
+                    block.color.set(((OreBlock) block).itemDrop.color);
                 }
             }
         }catch(Exception e){
@@ -140,11 +140,18 @@ public class ContentHandler{
         }
 
         world = new World(){
-
             public Tile tile(int x, int y){
                 return new Tile(x, y);
             }
         };
+    }
+
+    public static void readHeader(DataInput input) throws IOException{
+        byte[] bytes = new byte[mapHeader.length];
+        input.readFully(bytes);
+        if(!Arrays.equals(bytes, mapHeader)){
+            throw new IOException("Incorrect header! Expecting: " + Arrays.toString(mapHeader) + "; Actual: " + Arrays.toString(bytes));
+        }
     }
 
     private BufferedImage tint(BufferedImage image, Color color){
@@ -244,7 +251,7 @@ public class ContentHandler{
         int width = stream.readUnsignedShort();
         int height = stream.readUnsignedShort();
 
-        Func<Short, Block> mapper = i -> (Block)cmap[ContentType.block.ordinal()][i];
+        Func<Short, Block> mapper = i -> (Block) cmap[ContentType.block.ordinal()][i];
 
         if(width * height > 800 * 800) throw new IllegalArgumentException("Map too large (800 * 800 tiles).");
 
@@ -296,14 +303,6 @@ public class ContentHandler{
 
     protected int readChunk(DataInput input, boolean isByte) throws IOException{
         return isByte ? input.readUnsignedShort() : input.readInt();
-    }
-
-    public static void readHeader(DataInput input) throws IOException{
-        byte[] bytes = new byte[mapHeader.length];
-        input.readFully(bytes);
-        if(!Arrays.equals(bytes, mapHeader)){
-            throw new IOException("Incorrect header! Expecting: " + Arrays.toString(mapHeader) + "; Actual: " + Arrays.toString(bytes));
-        }
     }
 
     public static class Map{

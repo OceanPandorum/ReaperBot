@@ -4,9 +4,9 @@ import arc.struct.Array;
 import org.hjson.JsonArray;
 import org.hjson.JsonValue;
 
-import static reaperbot.ReaperBot.*;
+import static reaperbot.ReaperBot.configFile;
 
-public class Config {
+public class Config{
 
     public Array<String> getArray(String name){
         try{
@@ -14,7 +14,7 @@ public class Config {
             Array<String> strings = new Array<>();
             array.forEach(s -> strings.add(s.asString()));
             return strings;
-        }catch (Exception e){
+        }catch(Exception e){
             return new Array<>();
         }
     }
@@ -22,7 +22,7 @@ public class Config {
     public JsonArray getJArray(String name){
         try{
             return JsonValue.readJSON(configFile.readString()).asObject().get(name).asArray();
-        }catch (Exception e){
+        }catch(Exception e){
             return new JsonArray();
         }
     }
