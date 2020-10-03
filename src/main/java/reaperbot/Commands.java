@@ -9,6 +9,7 @@ import mindustry.game.Schematic;
 import mindustry.game.Schematics;
 import mindustry.type.ItemStack;
 import net.dv8tion.jda.api.EmbedBuilder;
+import net.dv8tion.jda.api.Permission;
 import net.dv8tion.jda.api.entities.*;
 import net.dv8tion.jda.api.events.message.MessageReceivedEvent;
 
@@ -16,6 +17,8 @@ import javax.imageio.ImageIO;
 import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.FileOutputStream;
+import java.net.URL;
+import java.net.URLEncoder;
 import java.util.List;
 import java.util.UUID;
 
@@ -26,7 +29,7 @@ public class Commands{
     private final CommandHandler handler = new CommandHandler(prefix);
 
     Commands(){
-        handler.register("help", bundle.get("commands.help.description"), args -> {
+        handler.<Member>register("help", bundle.get("commands.help.description"), (args, member) -> {
             StringBuilder builder = new StringBuilder();
 
             for(Command command : handler.getCommandList()){
@@ -46,7 +49,11 @@ public class Commands{
 
             listener.info(bundle.get("commands.help.title"), builder.toString());
         });
-        handler.register("delete", "<amount>", bundle.get("commands.delete.description"), args -> {
+        handler.<Member>register("delete", "<amount>", bundle.get("commands.delete.description"), (args, member) -> {
+            if(!isAdmin(member)){
+                listener.err(bundle.get("commands.permission-denied"));
+                return;
+            }
             if(Strings.parseInt(args[0]) <= 0){
                 listener.err(bundle.get("commands.delete.incorrect-number"));
                 return;
@@ -63,7 +70,11 @@ public class Commands{
             listener.channel.deleteMessages(hist.getRetrievedHistory()).queue();
             Log.info("Deleted {0} messages.", number);
         });
-        handler.register("mute", "<@user> [reason...]", bundle.get("commands.mute.description"), args -> {
+        handler.<Member>register("mute", "<@user> [reason...]", bundle.get("commands.mute.description"), (args, member) -> {
+            if(!isAdmin(member)){
+                listener.err(bundle.get("commands.permission-denied"));
+                return;
+            }
             String author = args[0].substring(2, args[0].length() - 1);
             if(author.startsWith("!")) author = author.substring(1);
 
@@ -84,7 +95,11 @@ public class Commands{
             listener.info(bundle.get("commands.mute.title"), bundle.get("commands.mute.text"), user.getAsMention());
             listener.guild.addRoleToMember(user.getIdLong(), listener.guild.getRoleById(747905698267922451L)).queue();
         });
-        handler.register("unmute", "<@user>", bundle.get("commands.unmute.description"), args -> {
+        handler.<Member>register("unmute", "<@user>", bundle.get("commands.unmute.description"), (args, member) -> {
+            if(!isAdmin(member)){
+                listener.err(bundle.get("commands.permission-denied"));
+                return;
+            }
             String author = args[0].substring(2, args[0].length() - 1);
             if(author.startsWith("!")) author = author.substring(1);
 
@@ -94,7 +109,7 @@ public class Commands{
             listener.info(bundle.get("commands.unmute.title"), bundle.get("commands.unmute.text"), user.getAsMention());
             listener.guild.removeRoleFromMember(user.getIdLong(), listener.guild.getRoleById(747905698267922451L)).queue();
         });
-        handler.register("postmap", bundle.get("commands.postmap.description"), args -> {
+        handler.<Member>register("postmap", bundle.get("commands.postmap.description"), (args, member) -> {
             Message message = listener.lastMessage;
 
             if(message.getAttachments().size() != 1 || !message.getAttachments().get(0).getFileName().endsWith(".msav")){
@@ -131,7 +146,7 @@ public class Commands{
                 listener.deleteMessages();
             }
         });
-        handler.register("postschem", "[schem]", bundle.get("commands.postschem.description"), args -> {
+        handler.<Member>register("postschem", "[schem]", bundle.get("commands.postschem.description"), (args, member) -> {
             Message message = listener.lastMessage;
 
             try{
@@ -149,7 +164,7 @@ public class Commands{
                 EmbedBuilder builder = new EmbedBuilder().setColor(listener.normalColor).setColor(listener.normalColor)
                         .setImage("attachment://" + previewFile.getName())
                         .setAuthor(listener.correctName(message.getAuthor()), null,
-                                message.getAuthor().getAvatarUrl()).setTitle(schem.name());
+                                   message.getAuthor().getAvatarUrl()).setTitle(schem.name());
 
                 StringBuilder field = new StringBuilder();
 
@@ -182,12 +197,12 @@ public class Commands{
             listener.lastMessage = event.getMessage();
         }
 
-        handleResponse(handler.handleMessage(text));
+        handleResponse(handler.handleMessage(text, event.getMember()));
     }
 
     boolean isAdmin(Member member){
         try{
-            return member.getRoles().stream().anyMatch(r -> r.getIdLong() == 744837465310887996L || r.getIdLong() == 747899862389096640L);
+            return member.getRoles().stream().anyMatch(role -> role.hasPermission(Permission.ADMINISTRATOR));
         }catch(Exception e){
             return false;
         }
@@ -203,7 +218,7 @@ public class Commands{
                              prefix, response.command.text));
             }else{
                 listener.err(bundle.get("commands.response.incorrect-arguments"), bundle.format("commands.response.incorrect-arguments.text",
-                                        prefix, response.command.text, response.command.paramText));
+                             prefix, response.command.text, response.command.paramText));
             }
             listener.deleteMessages();
         }

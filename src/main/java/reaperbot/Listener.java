@@ -34,7 +34,7 @@ public class Listener extends ListenerAdapter{
     Color errorColor = Color.decode("#ff3838");
 
     ObjectMap<Long, boolean[]> temp = new ObjectMap<>();
-    long[] roleMessages = {752178728586707094L, 752178728963932270L};
+    long[] roleMessages = {760253624789762058L, 760253623602642954L};
 
     public Listener(){
         try{
@@ -48,10 +48,8 @@ public class Listener extends ListenerAdapter{
                 }
 
                 net.run(Net.timeout, () -> {
-                    results.sort((a, b) -> a.name != null && b.name == null
-                            ? 1
-                            : a.name == null && b.name != null
-                            ? -1
+                    results.sort((a, b) -> a.name != null && b.name == null ? 1
+                            : a.name == null && b.name != null ? -1
                             : Integer.compare(a.players, b.players));
 
                     EmbedBuilder embed = new EmbedBuilder();
@@ -113,7 +111,7 @@ public class Listener extends ListenerAdapter{
     @Override
     public void onMessageReactionAdd(@Nonnull MessageReactionAddEvent event){
         try{
-            boolean[] b = !temp.containsKey(event.getUserIdLong()) ? new boolean[2] : temp.get(event.getUserIdLong());
+            boolean[] b = temp.getOr(event.getUserIdLong(), () -> new boolean[2]);
             if(roleMessages[0] == event.getMessageIdLong())
                 b[0] = true;
             else if(roleMessages[1] == event.getMessageIdLong())

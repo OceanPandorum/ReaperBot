@@ -3,14 +3,12 @@ apply plugin: 'java'
 repositories {
     mavenCentral()
     jcenter()
-    maven {
-        url 'https://www.jitpack.io'
-    }
+    maven { url 'https://www.jitpack.io' }
 }
 
 project.ext.mainClassName = "reaperbot.ReaperBot"
 
-ext{
+ext {
     mindustryVersion = 'v104.6'
 }
 
@@ -22,11 +20,10 @@ dependencies {
 }
 
 task dist(type: Jar) {
-    manifest{
-        attributes 'Main-Class': project.mainClassName
-    }
-
     dependsOn configurations.runtimeClasspath
+    manifest { attributes 'Main-Class': project.mainClassName }
+
+    from files(sourceSets.main.output)
     from {
         configurations.runtimeClasspath.findAll {
             it.name.endsWith('jar')
@@ -34,7 +31,5 @@ task dist(type: Jar) {
             zipTree(it)
         }
     }
-
-    from files(sourceSets.main.output)
 }
 
