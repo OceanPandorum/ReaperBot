@@ -1,13 +1,14 @@
 package reaperbot;
 
 import arc.Core;
+import arc.files.Fi;
 import arc.struct.ObjectMap;
-import arc.util.Log;
-import arc.util.Strings;
+import arc.util.*;
 import mindustry.net.Host;
 import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.entities.*;
+import net.dv8tion.jda.api.events.ReadyEvent;
 import net.dv8tion.jda.api.events.message.MessageReceivedEvent;
 import net.dv8tion.jda.api.events.message.react.MessageReactionAddEvent;
 import net.dv8tion.jda.api.hooks.ListenerAdapter;
@@ -18,9 +19,11 @@ import java.awt.*;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
+import java.util.Timer;
 import java.util.*;
 import java.util.concurrent.*;
 
+import static arc.Files.FileType.classpath;
 import static reaperbot.ReaperBot.*;
 
 public class Listener extends ListenerAdapter{
@@ -32,6 +35,10 @@ public class Listener extends ListenerAdapter{
     Message lastSentMessage;
     Color normalColor = Color.decode("#b9fca6");
     Color errorColor = Color.decode("#ff3838");
+
+    public final String[] swears = new Fi("great_russian_language.txt", classpath).readString("UTF-8")
+                                                                                  .replaceAll("\n", "")
+                                                                                  .split(", ");
 
     ObjectMap<Long, boolean[]> temp = new ObjectMap<>();
     long[] roleMessages = {760253624789762058L, 760253623602642954L};
@@ -58,21 +65,21 @@ public class Listener extends ListenerAdapter{
                     for(Host result : results){
                         if(result.name != null){
                             embed.addField(result.address,
-                                    Strings.format("*{0}*\n{1}: {2}\n{3}: {4}\n{5}: {6}\n{7}: {8}\n{9}: {10}\n_\n_\n",
-                                            result.name.replace("\\", "\\\\").replace("_", "\\_")
-                                                       .replace("*", "\\*").replace("`", "\\`"),
-                                            bundle.get("listener.players"),
-                                            (result.playerLimit > 0 ? result.players + "/" + result.playerLimit : result.players),
-                                            bundle.get("listener.map"),
-                                            result.mapname.replace("\\", "\\\\").replace("_", "\\_")
-                                                          .replace("*", "\\*").replace("`", "\\`")
-                                                          .replaceAll("\\[.*?\\]", ""),
-                                            bundle.get("listener.wave"),
-                                            result.wave,
-                                            bundle.get("listener.version"),
-                                            result.version,
-                                            bundle.get("listener.mode"),
-                                            Strings.capitalize(result.mode.name())), false);
+                                           Strings.format("*@*\n@: @\n@: @\n@: @\n@: @\n@: @\n_\n_\n",
+                                                          result.name.replace("\\", "\\\\").replace("_", "\\_")
+                                                                     .replace("*", "\\*").replace("`", "\\`"),
+                                                          bundle.get("listener.players"),
+                                                          (result.playerLimit > 0 ? result.players + "/" + result.playerLimit : result.players),
+                                                          bundle.get("listener.map"),
+                                                          result.mapname.replace("\\", "\\\\").replace("_", "\\_")
+                                                                        .replace("*", "\\*").replace("`", "\\`")
+                                                                        .replaceAll("\\[.*?\\]", ""),
+                                                          bundle.get("listener.wave"),
+                                                          result.wave,
+                                                          bundle.get("listener.version"),
+                                                          result.version,
+                                                          bundle.get("listener.mode"),
+                                                          Strings.capitalize(result.mode.name())), false);
                         }
                     }
 
@@ -100,9 +107,15 @@ public class Listener extends ListenerAdapter{
     }
 
     @Override
+    public void onReady(@Nonnull ReadyEvent event){
+        Log.info("Discord bot up.");
+    }
+
+    @Override
     public void onMessageReceived(@Nonnull MessageReceivedEvent event){
         try{
-            if(!event.getAuthor().isBot()) commands.handle(event);
+            if(event.getAuthor().isBot()) return;
+            commands.handle(event);
         }catch(Exception e){
             Log.err(e);
         }
@@ -110,17 +123,14 @@ public class Listener extends ListenerAdapter{
 
     @Override
     public void onMessageReactionAdd(@Nonnull MessageReactionAddEvent event){
-        try{
-            boolean[] b = temp.getOr(event.getUserIdLong(), () -> new boolean[2]);
-            if(roleMessages[0] == event.getMessageIdLong())
-                b[0] = true;
-            else if(roleMessages[1] == event.getMessageIdLong())
-                b[1] = true;
-            temp.put(event.getUserIdLong(), b);
-            accept(event.getUserIdLong());
-        }catch(Exception e){
-            Log.err(e);
+        boolean[] b = temp.get(event.getUserIdLong(), () -> new boolean[2]);
+        if(roleMessages[0] == event.getMessageIdLong()){
+            b[0] = true;
+        }else if(roleMessages[1] == event.getMessageIdLong()){
+            b[1] = true;
         }
+        temp.put(event.getUserIdLong(), b);
+        accept(event.getUserIdLong());
     }
 
     public String correctName(User user){
@@ -148,7 +158,7 @@ public class Listener extends ListenerAdapter{
                 last.delete().queue();
                 lastSent.delete().queue();
             }
-        }, ReaperBot.messageDeleteTime);
+        }, messageDeleteTime);
     }
 
     public void text(String text, Object... args){

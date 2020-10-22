@@ -19,12 +19,12 @@ import mindustry.Vars;
 import mindustry.content.Blocks;
 import mindustry.core.*;
 import mindustry.ctype.*;
-import mindustry.entities.traits.BuilderTrait.BuildRequest;
+import mindustry.entities.units.BuildPlan;
 import mindustry.game.*;
 import mindustry.io.MapIO;
 import mindustry.world.Block;
 import mindustry.world.Tile;
-import mindustry.world.blocks.OreBlock;
+import mindustry.world.blocks.environment.OreBlock;
 
 import javax.imageio.ImageIO;
 import java.awt.*;
@@ -88,51 +88,45 @@ public class ContentHandler{
         });
 
         Core.atlas.setErrorRegion("error");
-        Draw.scl = 1f / 4f;
-        Core.batch = new SpriteBatch(null){
-            @Override
-            protected void draw(TextureRegion region, float x, float y, float originX, float originY, float width, float height, float rotation){
-                x += 4;
-                y += 4;
+        try{
+            Core.batch = new SpriteBatch(){
+                @Override
+                protected void draw(TextureRegion region, float x, float y, float originX, float originY, float width, float height, float rotation){
+                    x += 4;
+                    y += 4;
 
-                x *= 4;
-                y *= 4;
-                width *= 4;
-                height *= 4;
+                    x *= 4;
+                    y *= 4;
+                    width *= 4;
+                    height *= 4;
 
-                y = currentImage.getHeight() - (y + height / 2f) - height / 2f;
+                    y = currentImage.getHeight() - (y + height / 2f) - height / 2f;
 
-                AffineTransform at = new AffineTransform();
-                at.translate(x, y);
-                at.rotate(-rotation * Mathf.degRad, originX * 4, originY * 4);
+                    AffineTransform at = new AffineTransform();
+                    at.translate(x, y);
+                    at.rotate(-rotation * Mathf.degRad, originX * 4, originY * 4);
 
-                currentGraphics.setTransform(at);
-                BufferedImage image = regions.get(((AtlasRegion) region).name);
-                if(!color.equals(Color.white)){
-                    image = tint(image, color);
+                    currentGraphics.setTransform(at);
+                    BufferedImage image = regions.get(((AtlasRegion) region).name);
+                    if(!color.equals(Color.white)){
+                        image = tint(image, color);
+                    }
+
+                    currentGraphics.drawImage(image, 0, 0, (int) width, (int) height, null);
                 }
-
-                currentGraphics.drawImage(image, 0, 0, (int) width, (int) height, null);
-            }
-        };
-
-        for(ContentType type : ContentType.values()){
-            for(Content content : Vars.content.getBy(type)){
-                try{
-                    content.load();
-                }catch(Throwable e){
-                    Log.err(e);
-                }
-            }
+            };
+            Draw.scl = 1f / 4f;
+        }catch(Exception e){
+            Log.err(e);
         }
 
         try{
             BufferedImage image = ImageIO.read(new File("content/block_colors.png"));
 
             for(Block block : Vars.content.blocks()){
-                block.color.argb8888(image.getRGB(block.id, 0));
+                block.mapColor.argb8888(image.getRGB(block.id, 0));
                 if(block instanceof OreBlock){
-                    block.color.set(((OreBlock) block).itemDrop.color);
+                    block.mapColor.set(((OreBlock) block).itemDrop.color);
                 }
             }
         }catch(Exception e){
@@ -179,16 +173,16 @@ public class ContentHandler{
     public BufferedImage previewSchematic(Schematic schem) throws Exception{
         BufferedImage image = new BufferedImage(schem.width * 32, schem.height * 32, BufferedImage.TYPE_INT_ARGB);
 
-        Array<BuildRequest> requests = schem.tiles.map(t -> new BuildRequest(t.x, t.y, t.rotation, t.block).configure(t.config));
+        Seq<BuildPlan> requests = schem.tiles.map(t -> new BuildPlan(t.x, t.y, t.rotation, t.block, t.config));
         currentGraphics = image.createGraphics();
         currentImage = image;
         requests.each(req -> {
             req.animScale = 1f;
             req.worldContext = false;
-            req.block.drawRequestRegion(req, requests::each);
+            req.block.drawRequestRegion(req, requests);
         });
 
-        requests.each(req -> req.block.drawRequestConfigTop(req, requests::each));
+        requests.each(req -> req.block.drawRequestConfigTop(req, requests));
         ImageIO.write(image, "png", new File("out.png"));
 
         return image;
@@ -217,10 +211,12 @@ public class ContentHandler{
         out.description = map.get("description");
         out.tags = map;
 
+        Log.info(map);
+
         region(stream);
         byte mapped = stream.readByte();
 
-        MappableContent[][] cmap = new MappableContent[ContentType.values().length][0];
+        MappableContent[][] cmap = new MappableContent[ContentType.values().length - 4][0];
 
         for(int i = 0; i < mapped; i++){
             ContentType type = ContentType.values()[stream.readByte()];
@@ -279,7 +275,7 @@ public class ContentHandler{
             Mtile tile = tiles[x][y];
             tile.wall = block;
 
-            if(block.hasEntity()){
+            if(block.synthetic()){
                 int length = stream.readUnsignedShort();
                 stream.skipBytes(length);
             }else{
@@ -298,16 +294,16 @@ public class ContentHandler{
     }
 
     protected void region(DataInput stream) throws IOException{
-        readChunk(stream, false);
+        readChunk(stream);
     }
 
-    protected int readChunk(DataInput input, boolean isByte) throws IOException{
-        return isByte ? input.readUnsignedShort() : input.readInt();
+    protected void readChunk(DataInput input) throws IOException{
+        input.readInt();
     }
 
     public static class Map{
         public String name, author, description;
-        public ObjectMap<String, String> tags = new ObjectMap<>();
+        public StringMap tags = new StringMap();
         public BufferedImage image;
         public int version;
     }
@@ -371,7 +367,7 @@ public class ContentHandler{
 
         @Override
         public Format getFormat(){
-            return Format.RGBA8888;
+            return Format.rgba8888;
         }
 
         @Override

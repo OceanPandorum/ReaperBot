@@ -1,6 +1,6 @@
 package reaperbot;
 
-import arc.struct.Array;
+import arc.struct.Seq;
 import org.hjson.JsonArray;
 import org.hjson.JsonValue;
 
@@ -8,14 +8,14 @@ import static reaperbot.ReaperBot.configFile;
 
 public class Config{
 
-    public Array<String> getArray(String name){
+    public Seq<String> getArray(String name){
         try{
             JsonArray array = JsonValue.readJSON(configFile.readString()).asObject().get(name).asArray();
-            Array<String> strings = new Array<>();
+            Seq<String> strings = new Seq<>();
             array.forEach(s -> strings.add(s.asString()));
             return strings;
         }catch(Exception e){
-            return new Array<>();
+            return new Seq<>();
         }
     }
 

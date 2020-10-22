@@ -1,5 +1,6 @@
 package reaperbot;
 
+import arc.func.Cons;
 import arc.util.Strings;
 import mindustry.net.Host;
 import mindustry.net.NetworkIO;
@@ -9,7 +10,6 @@ import java.net.*;
 import java.nio.ByteBuffer;
 import java.util.Timer;
 import java.util.TimerTask;
-import java.util.function.Consumer;
 
 public class Net{
     public static final int timeout = 2000;
@@ -24,12 +24,12 @@ public class Net{
         }
     }
 
-    public void pingServer(String ip, Consumer<Host> listener){
+    public void pingServer(String ip, Cons<Host> listener){
         run(0, () -> {
             try{
                 String resultIP = ip;
                 int port = 6567;
-                if(ip.contains(":") && Strings.canParsePostiveInt(ip.split(":")[1])){
+                if(ip.contains(":") && Strings.canParsePositiveInt(ip.split(":")[1])){
                     resultIP = ip.split(":")[0];
                     port = Strings.parseInt(ip.split(":")[1]);
                 }
@@ -45,10 +45,11 @@ public class Net{
                 socket.receive(packet);
 
                 ByteBuffer buffer = ByteBuffer.wrap(packet.getData());
-                listener.accept(readServerData(buffer, ip, System.currentTimeMillis() - start));
+                listener.get(readServerData(buffer, ip, System.currentTimeMillis() - start));
                 socket.disconnect();
             }catch(Exception e){
-                listener.accept(new Host(null, ip, null, 0, 0, 0, null, null, 0, null));
+                listener.get(new Host(0, null, ip, null, 0, 0,
+                                      0, null, null, 0, null, null));
             }
         });
     }
@@ -63,8 +64,6 @@ public class Net{
     }
 
     public Host readServerData(ByteBuffer buffer, String ip, long ping){
-        Host host = NetworkIO.readServerData(ip, buffer);
-        host.ping = (int) ping;
-        return host;
+        return NetworkIO.readServerData((int) ping, ip, buffer);
     }
 }

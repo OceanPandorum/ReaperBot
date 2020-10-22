@@ -6,30 +6,29 @@ repositories {
     maven { url 'https://www.jitpack.io' }
 }
 
-project.ext.mainClassName = "reaperbot.ReaperBot"
-
 ext {
-    mindustryVersion = 'v104.6'
+    mindustryVersion = 'v109'
+    jdaVersion       = '4.2.0_168'
 }
 
+sourceSets.main.java.srcDirs = ["src/main/java/"]
+sourceSets.main.resources.srcDirs = ["src/main/resources"]
+project.ext.mainClassName = "reaperbot.ReaperBot"
+
 dependencies {
-    implementation "net.dv8tion:JDA:4.2.0_168"
+    implementation ("net.dv8tion:JDA:$jdaVersion") { exclude module: 'opus-java' }
     implementation "org.hjson:hjson:3.0.0"
     implementation "com.github.Anuken.Arc:arc-core:$mindustryVersion"
     implementation "com.github.Anuken.Mindustry:core:$mindustryVersion"
 }
 
-task dist(type: Jar) {
-    dependsOn configurations.runtimeClasspath
-    manifest { attributes 'Main-Class': project.mainClassName }
+task dist(type: Jar){
+    from files(sourceSets.main.output.classesDirs)
+    from files(sourceSets.main.output.resourcesDir)
+    from {configurations.runtimeClasspath.collect{it.isDirectory() ? it : zipTree(it)}}
 
-    from files(sourceSets.main.output)
-    from {
-        configurations.runtimeClasspath.findAll {
-            it.name.endsWith('jar')
-        }.collect {
-            zipTree(it)
-        }
-    }
+    archiveFileName = "${project.name}.jar"
+
+    manifest { attributes 'Main-Class': project.mainClassName }
 }
 
