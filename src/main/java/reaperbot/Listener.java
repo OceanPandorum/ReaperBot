@@ -2,6 +2,7 @@ package reaperbot;
 
 import arc.Core;
 import arc.files.Fi;
+import arc.func.Func;
 import arc.struct.ObjectMap;
 import arc.util.*;
 import mindustry.net.Host;
@@ -27,74 +28,70 @@ import static arc.Files.FileType.classpath;
 import static reaperbot.ReaperBot.*;
 
 public class Listener extends ListenerAdapter{
-    TextChannel channel;
-    User lastUser;
-    Guild guild;
-    JDA jda;
-    Message lastMessage;
-    Message lastSentMessage;
-    Color normalColor = Color.decode("#b9fca6");
-    Color errorColor = Color.decode("#ff3838");
+    protected @Nullable TextChannel channel;
+    protected @Nullable User lastUser;
+    protected Guild guild;
+    protected JDA jda;
+    protected @Nullable Message lastMessage, lastSentMessage;
+
+    public final Color normalColor = Color.decode("#b9fca6");
+    public final Color errorColor = Color.decode("#ff3838");
 
     public final String[] swears = new Fi("great_russian_language.txt", classpath).readString("UTF-8")
-                                                                                  .replaceAll("\n", "")
-                                                                                  .split(", ");
+                                                                                          .replaceAll("\n", "")
+                                                                                          .split(", ");
 
     ObjectMap<Long, boolean[]> temp = new ObjectMap<>();
-    long[] roleMessages = {760253624789762058L, 760253623602642954L};
+    long[] roleMessages = {760253624789762058L, 760253623602642954L}; // сообщения с правилами
 
     public Listener(){
         try{
             Core.net = new arc.Net();
+            Func<String, String> replace = s -> s.replace("\\", "\\\\").replace("_", "\\_")
+                                                 .replace("*", "\\*").replace("`", "\\`");
 
-            Executors.newSingleThreadScheduledExecutor().scheduleAtFixedRate(() -> {
+            service.schedule(() -> {
                 List<Host> results = new CopyOnWriteArrayList<>();
 
-                for(String server : config.getArray("servers")){
-                    net.pingServer(server, results::add);
-                }
+                config.getArray("servers").forEach(server -> net.pingServer(server, results::add));
 
                 net.run(Net.timeout, () -> {
                     results.sort((a, b) -> a.name != null && b.name == null ? 1
-                            : a.name == null && b.name != null ? -1
-                            : Integer.compare(a.players, b.players));
+                    : a.name == null && b.name != null ? -1 : Integer.compare(a.players, b.players));
 
                     EmbedBuilder embed = new EmbedBuilder();
                     embed.setColor(normalColor);
 
                     results.forEach(result -> {
                         if(result.name != null){
-                            embed.addField(result.address,
-                                           Strings.format("*@*\n@: @\n@: @\n@: @\n@: @\n@: @\n_\n_\n",
-                                                          result.name.replace("\\", "\\\\")
-                                                                     .replace("_", "\\_")
-                                                                     .replace("*", "\\*")
-                                                                     .replace("`", "\\`"),
-                                                          bundle.get("listener.players"),
-                                                          (result.playerLimit > 0 ? result.players + "/" + result.playerLimit : result.players),
-                                                          bundle.get("listener.map"),
-                                                          result.mapname.replace("\\", "\\\\")
-                                                                        .replace("_", "\\_")
-                                                                        .replace("*", "\\*")
-                                                                        .replace("`", "\\`")
-                                                                        .replaceAll("\\[.*?\\]", ""),
-                                                          bundle.get("listener.wave"),
-                                                          result.wave,
-                                                          bundle.get("listener.version"),
-                                                          result.version,
-                                                          bundle.get("listener.mode"),
-                                                          Strings.capitalize(result.mode.name())), false);
+                            embed.addField(result.address, Strings.format("*@*\n@: @\n@: @\n@: @\n@: @\n@: @\n_\n_\n",
+                                    replace.get(result.name),
+                                    bundle.get("listener.players"),
+                                    (result.playerLimit > 0 ? result.players + "/" + result.playerLimit : result.players),
+                                    bundle.get("listener.map"),
+                                    replace.get(result.mapname).replaceAll("\\[.*?\\]", ""),
+                                    bundle.get("listener.wave"),
+                                    result.wave,
+                                    bundle.get("listener.version"),
+                                    result.version,
+                                    bundle.get("listener.mode"),
+                                    Strings.capitalize(result.mode.name())), false);
                         }
                     });
 
-                    embed.setFooter(bundle.format("listener.servers.last-update", DateTimeFormatter.ofPattern("dd MMM yyyy HH:mm:ss ZZZZ").format(ZonedDateTime.now())));
+                    embed.setFooter(time());
 
                     jda.getTextChannelById(serverChannelID).editMessageById(747117737268215882L, embed.build()).queue();
                 });
-            }, 10, 60, TimeUnit.SECONDS);
+            },60, TimeUnit.SECONDS);
         }catch(Exception e){
             throw new RuntimeException(e);
         }
+    }
+
+    @Nonnull
+    protected String time(){
+        return bundle.format("listener.servers.last-update", DateTimeFormatter.ofPattern("dd MMM yyyy HH:mm:ss ZZZZ").format(ZonedDateTime.now()));
     }
 
     public void sendInfo(){
@@ -117,12 +114,8 @@ public class Listener extends ListenerAdapter{
 
     @Override
     public void onMessageReceived(@Nonnull MessageReceivedEvent event){
-        try{
-            if(event.getAuthor().isBot() || event.getChannel().getType() != ChannelType.TEXT) return;
-            commands.handle(event);
-        }catch(Exception e){
-            Log.err(e);
-        }
+        if(event.getAuthor().isBot() || event.getChannel().getType() != ChannelType.TEXT) return;
+        commands.handle(event);
     }
 
     @Override
@@ -137,10 +130,10 @@ public class Listener extends ListenerAdapter{
         accept(event.getUserIdLong());
     }
 
-    public String correctName(User user){
+    protected String fullName(User user){
         String name = user.getName();
         Member member = listener.guild.retrieveMember(user).complete();
-        if(member.getNickname() != null){
+        if(member != null && member.getNickname() != null){
             name += " / " + member.getNickname();
         }
         return name;

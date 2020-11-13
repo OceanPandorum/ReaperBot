@@ -7,7 +7,6 @@ import arc.util.io.Streams;
 import mindustry.Vars;
 import mindustry.game.Schematic;
 import mindustry.game.Schematics;
-import mindustry.type.ItemStack;
 import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.Permission;
 import net.dv8tion.jda.api.entities.*;
@@ -20,7 +19,6 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.util.List;
 import java.util.UUID;
-import java.util.concurrent.TimeUnit;
 
 import static reaperbot.ContentHandler.*;
 import static reaperbot.ReaperBot.*;
@@ -89,7 +87,7 @@ public class Commands{
 
                 User current = listener.lastUser;
 
-                String name = listener.correctName(current);
+                String name = listener.fullName(current);
 
                 EmbedBuilder builder = new EmbedBuilder()
                 .setColor(listener.normalColor)
@@ -131,7 +129,7 @@ public class Commands{
 
                 EmbedBuilder builder = new EmbedBuilder().setColor(listener.normalColor).setColor(listener.normalColor)
                                                          .setImage("attachment://" + previewFile.getName())
-                                                         .setAuthor(listener.correctName(message.getAuthor()), null,
+                                                         .setAuthor(listener.fullName(message.getAuthor()), null,
                                                                     message.getAuthor().getAvatarUrl()).setTitle(schem.name());
 
                 StringBuilder field = new StringBuilder();
