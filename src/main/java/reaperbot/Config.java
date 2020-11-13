@@ -8,6 +8,7 @@ import static reaperbot.ReaperBot.configFile;
 
 public class Config{
 
+    // TODO надо сериализовать
     public Seq<String> getArray(String name){
         try{
             JsonArray array = JsonValue.readJSON(configFile.readString()).asObject().get(name).asArray();

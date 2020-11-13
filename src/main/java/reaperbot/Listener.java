@@ -62,17 +62,21 @@ public class Listener extends ListenerAdapter{
                     EmbedBuilder embed = new EmbedBuilder();
                     embed.setColor(normalColor);
 
-                    for(Host result : results){
+                    results.forEach(result -> {
                         if(result.name != null){
                             embed.addField(result.address,
                                            Strings.format("*@*\n@: @\n@: @\n@: @\n@: @\n@: @\n_\n_\n",
-                                                          result.name.replace("\\", "\\\\").replace("_", "\\_")
-                                                                     .replace("*", "\\*").replace("`", "\\`"),
+                                                          result.name.replace("\\", "\\\\")
+                                                                     .replace("_", "\\_")
+                                                                     .replace("*", "\\*")
+                                                                     .replace("`", "\\`"),
                                                           bundle.get("listener.players"),
                                                           (result.playerLimit > 0 ? result.players + "/" + result.playerLimit : result.players),
                                                           bundle.get("listener.map"),
-                                                          result.mapname.replace("\\", "\\\\").replace("_", "\\_")
-                                                                        .replace("*", "\\*").replace("`", "\\`")
+                                                          result.mapname.replace("\\", "\\\\")
+                                                                        .replace("_", "\\_")
+                                                                        .replace("*", "\\*")
+                                                                        .replace("`", "\\`")
                                                                         .replaceAll("\\[.*?\\]", ""),
                                                           bundle.get("listener.wave"),
                                                           result.wave,
@@ -81,7 +85,7 @@ public class Listener extends ListenerAdapter{
                                                           bundle.get("listener.mode"),
                                                           Strings.capitalize(result.mode.name())), false);
                         }
-                    }
+                    });
 
                     embed.setFooter(bundle.format("listener.servers.last-update", DateTimeFormatter.ofPattern("dd MMM yyyy HH:mm:ss ZZZZ").format(ZonedDateTime.now())));
 
@@ -114,7 +118,7 @@ public class Listener extends ListenerAdapter{
     @Override
     public void onMessageReceived(@Nonnull MessageReceivedEvent event){
         try{
-            if(event.getAuthor().isBot()) return;
+            if(event.getAuthor().isBot() || event.getChannel().getType() != ChannelType.TEXT) return;
             commands.handle(event);
         }catch(Exception e){
             Log.err(e);
@@ -179,6 +183,7 @@ public class Listener extends ListenerAdapter{
     public void err(String title, String text, Object... args){
         MessageEmbed e = new EmbedBuilder()
                 .setTitle(title).setDescription(Strings.format(text, args)).setColor(errorColor).build();
+
         lastSentMessage = channel.sendMessage(e).complete();
     }
 }

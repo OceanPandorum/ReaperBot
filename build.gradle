@@ -1,22 +1,24 @@
 apply plugin: 'java'
 
-repositories {
+repositories{
     mavenCentral()
     jcenter()
-    maven { url 'https://www.jitpack.io' }
+    maven{url 'https://www.jitpack.io'}
 }
 
-ext {
-    mindustryVersion = 'v109'
-    jdaVersion       = '4.2.0_168'
+ext{
+    mindustryVersion = 'v113.2'
+    jdaVersion = '4.2.0_168'
 }
 
 sourceSets.main.java.srcDirs = ["src/main/java/"]
 sourceSets.main.resources.srcDirs = ["src/main/resources"]
 project.ext.mainClassName = "reaperbot.ReaperBot"
 
-dependencies {
-    implementation ("net.dv8tion:JDA:$jdaVersion") { exclude module: 'opus-java' }
+dependencies{
+    implementation("net.dv8tion:JDA:$jdaVersion"){
+        exclude module: 'opus-java'
+    }
     implementation "org.hjson:hjson:3.0.0"
     implementation "com.github.Anuken.Arc:arc-core:$mindustryVersion"
     implementation "com.github.Anuken.Mindustry:core:$mindustryVersion"
@@ -25,10 +27,10 @@ dependencies {
 task dist(type: Jar){
     from files(sourceSets.main.output.classesDirs)
     from files(sourceSets.main.output.resourcesDir)
-    from {configurations.runtimeClasspath.collect{it.isDirectory() ? it : zipTree(it)}}
+    from{configurations.runtimeClasspath.collect{it.isDirectory() ? it : zipTree(it)}}
 
     archiveFileName = "${project.name}.jar"
 
-    manifest { attributes 'Main-Class': project.mainClassName }
+    manifest{attributes 'Main-Class': project.mainClassName}
 }
 
