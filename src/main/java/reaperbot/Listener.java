@@ -28,14 +28,13 @@ import static arc.Files.FileType.classpath;
 import static reaperbot.ReaperBot.*;
 
 public class Listener extends ListenerAdapter{
-    protected @Nullable TextChannel channel;
-    protected @Nullable User lastUser;
     protected Guild guild;
     protected JDA jda;
+    protected @Nullable TextChannel channel;
+    protected @Nullable User lastUser;
     protected @Nullable Message lastMessage, lastSentMessage;
 
-    public final Color normalColor = Color.decode("#b9fca6");
-    public final Color errorColor = Color.decode("#ff3838");
+    public final Color normalColor = Color.decode("#b9fca6"), errorColor = Color.decode("#ff3838");
 
     public final String[] swears = new Fi("great_russian_language.txt", classpath).readString("UTF-8")
                                                                                           .replaceAll("\n", "")
@@ -79,7 +78,7 @@ public class Listener extends ListenerAdapter{
                         }
                     });
 
-                    embed.setFooter(time());
+                    embed.setFooter(bundle.format("listener.servers.last-update", time()));
 
                     jda.getTextChannelById(serverChannelID).editMessageById(747117737268215882L, embed.build()).queue();
                 });
@@ -91,7 +90,7 @@ public class Listener extends ListenerAdapter{
 
     @Nonnull
     protected String time(){
-        return bundle.format("listener.servers.last-update", DateTimeFormatter.ofPattern("dd MMM yyyy HH:mm:ss ZZZZ").format(ZonedDateTime.now()));
+        return DateTimeFormatter.ofPattern("dd MMM yyyy HH:mm:ss ZZZZ").format(ZonedDateTime.now());
     }
 
     public void sendInfo(){
@@ -130,6 +129,7 @@ public class Listener extends ListenerAdapter{
         accept(event.getUserIdLong());
     }
 
+    @Nonnull
     protected String fullName(User user){
         String name = user.getName();
         Member member = listener.guild.retrieveMember(user).complete();
@@ -152,8 +152,10 @@ public class Listener extends ListenerAdapter{
         new Timer().schedule(new TimerTask(){
             @Override
             public void run(){
-                last.delete().queue();
-                lastSent.delete().queue();
+                if(last != null && lastMessage != null){
+                    last.delete().queue();
+                    lastSent.delete().queue();
+                }
             }
         }, messageDeleteTime);
     }

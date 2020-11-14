@@ -11,7 +11,6 @@ import arc.graphics.g2d.TextureAtlas.TextureAtlasData;
 import arc.graphics.g2d.TextureAtlas.TextureAtlasData.Page;
 import arc.math.Mathf;
 import arc.struct.*;
-import arc.util.Structs;
 import arc.util.io.CounterInputStream;
 import arc.util.serialization.Base64Coder;
 import mindustry.Vars;
@@ -29,11 +28,9 @@ import java.awt.*;
 import java.awt.geom.AffineTransform;
 import java.awt.image.BufferedImage;
 import java.io.*;
-import java.util.Arrays;
 import java.util.zip.InflaterInputStream;
 
 import static mindustry.Vars.*;
-import static reaperbot.ReaperBot.*;
 import static reaperbot.ReaperBot.net;
 
 public class ContentHandler{
@@ -293,7 +290,6 @@ public class ContentHandler{
             out.image = floors;
 
             return out;
-
         }finally{
             content.setTemporaryMapper(null);
         }
@@ -327,9 +323,7 @@ public class ContentHandler{
         }
 
         @Override
-        public void prepare(){
-
-        }
+        public void prepare(){}
 
         @Override
         public Pixmap consumePixmap(){
@@ -342,9 +336,7 @@ public class ContentHandler{
         }
 
         @Override
-        public void consumeCustomData(int target){
-
-        }
+        public void consumeCustomData(int target){}
 
         @Override
         public int getWidth(){

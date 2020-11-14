@@ -148,6 +148,7 @@ public class Commands{
 
                 message.delete().queue();
             }catch(Exception e){
+                Log.err(e);
                 listener.err(bundle.get("commands.parsing-error"), Strings.neatError(e, true));
                 listener.deleteMessages();
             }

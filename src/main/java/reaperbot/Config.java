@@ -13,7 +13,7 @@ public class Config{
         try{
             JsonArray array = JsonValue.readJSON(configFile.readString()).asObject().get(name).asArray();
             Seq<String> strings = new Seq<>();
-            array.forEach(s -> strings.add(s.asString()));
+            array.values().stream().map(JsonValue::asString).forEach(strings::add);
             return strings;
         }catch(Exception e){
             return new Seq<>();

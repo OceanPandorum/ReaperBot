@@ -11,8 +11,6 @@ ext{
     jdaVersion = '4.2.0_168'
 }
 
-sourceSets.main.java.srcDirs = ["src/main/java/"]
-sourceSets.main.resources.srcDirs = ["src/main/resources"]
 project.ext.mainClassName = "reaperbot.ReaperBot"
 
 dependencies{
