@@ -83,6 +83,8 @@ public class Listener extends ListenerAdapter{
                     jda.getTextChannelById(serverChannelID).editMessageById(747117737268215882L, embed.build()).queue();
                 });
             },60, TimeUnit.SECONDS);
+
+            Log.info("Common listener loaded.");
         }catch(Exception e){
             throw new RuntimeException(e);
         }

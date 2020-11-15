@@ -22,7 +22,10 @@ public class ReaperBot{
     public static final int messageDeleteTime = 20000; // 20 секунд
     public static final long guildID = 744814929701240882L; // id сервера
 
-    public static Fi configFile = new Fi("prefs.json");
+    public static Fi configFile;
+    public static Fi cacheDir;
+    public static Fi schemDir;
+    public static Fi mapDir;
 
     public static ContentHandler contentHandler;
     public static Listener listener;
@@ -49,6 +52,15 @@ public class ReaperBot{
     }
 
     private static void init(){
+        configFile = new Fi("prefs.json");
+        cacheDir = new Fi("cache/");
+        schemDir = cacheDir.child("schem/");
+        mapDir = cacheDir.child("map/");
+
+        // Создаём схем и мод папку, кеш папка тоже создаться
+        schemDir.mkdirs();
+        mapDir.mkdirs();
+
         service = new ScheduledThreadPoolExecutor(2); // Todo надо бы на него побольше тасков наложить
         config = new Config();
         bundle = I18NBundle.createBundle(new Fi("bundle", Files.FileType.classpath), new Locale(""), "Windows-1251");

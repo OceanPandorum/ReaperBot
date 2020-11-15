@@ -17,6 +17,7 @@ import javax.imageio.ImageIO;
 import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.FileOutputStream;
+import java.lang.management.*;
 import java.util.List;
 import java.util.UUID;
 
@@ -39,14 +40,35 @@ public class Commands{
                 if(command.params.length > 0){
                     builder.append(" *");
                     builder.append(command.paramText);
-                    builder.append("*");
+                    builder.append('*');
                 }
                 builder.append(" - ");
                 builder.append(command.description);
-                builder.append("\n");
+                builder.append('\n');
             }
 
             listener.info(bundle.get("commands.help.title"), builder.toString());
+        });
+
+        // для дебагов
+        adminHandler.register("status", bundle.get("commands.status.description"), args -> {
+            StringBuilder builder = new StringBuilder();
+            RuntimeMXBean rb = ManagementFactory.getRuntimeMXBean();
+
+            long mem = (Runtime.getRuntime().totalMemory() - Runtime.getRuntime().freeMemory()) / 1024 / 1024;
+            builder.append(bundle.format("commands.status.cache-size", logger.hist.size));
+            builder.append('\n');
+            builder.append(bundle.format("commands.status.memory", mem));
+            builder.append('\n');
+            builder.append(bundle.format("commands.status.uptime", Strings.formatMillis(rb.getUptime())));
+            builder.append('\n');
+            builder.append(bundle.format("commands.status.swears-count", listener.swears.length));
+            builder.append('\n');
+            builder.append(bundle.format("commands.status.schem-dir-size", schemDir.findAll(f -> f.extension().equals(Vars.schematicExtension)).size));
+            builder.append('\n');
+            builder.append(bundle.format("commands.status.map-dir-size", mapDir.findAll(f -> f.extension().equals(Vars.mapExtension)).size));
+
+            listener.info(bundle.get("commands.status.title"), builder.toString());
         });
 
         adminHandler.register("delete", "<amount>", bundle.get("commands.delete.description"), args -> {
@@ -70,7 +92,7 @@ public class Commands{
         handler.register("postmap", bundle.get("commands.postmap.description"), (args, member) -> {
             Message message = listener.lastMessage;
 
-            if(message.getAttachments().size() != 1 || !message.getAttachments().get(0).getFileName().endsWith(".msav")){
+            if(message.getAttachments().size() != 1 || !message.getAttachments().get(0).getFileName().endsWith(Vars.mapExtension)){
                 listener.err(bundle.get("commands.postmap.empty-attachments"));
                 listener.deleteMessages();
                 return;
@@ -80,8 +102,8 @@ public class Commands{
 
             try{
                 Map map = contentHandler.readMap(net.download(a.getUrl()));
-                File mapFile = new Fi("cache/" + a.getFileName()).file();
-                Fi image = new Fi("cache/image_" + a.getFileName().replace(".msav", ".png"));
+                File mapFile = mapDir.child(a.getFileName()).file();
+                Fi image = mapDir.child("image_" + a.getFileName().replace(".msav", ".png"));
                 Streams.copy(net.download(a.getUrl()), new FileOutputStream(mapFile));
                 ImageIO.write(map.image, "png", image.file());
 
@@ -93,7 +115,7 @@ public class Commands{
                 .setColor(listener.normalColor)
                 .setImage("attachment://" + image.name())
                 .setAuthor(name, null, current.getAvatarUrl())
-                .setTitle(map.name == null ? a.getFileName().replace(".msav", "") : map.name);
+                .setTitle(map.name == null ? a.getFileName().replace(Vars.mapExtension, "") : map.name);
 
                 if(map.description != null) builder.setFooter(map.description);
 
@@ -122,8 +144,8 @@ public class Commands{
 
                 BufferedImage preview = contentHandler.previewSchematic(schem);
 
-                File previewFile = new Fi("cache/img_" + UUID.randomUUID().toString() + ".png").file();
-                File schemFile = new Fi("cache/" + schem.name() + "." + Vars.schematicExtension).file();
+                File previewFile = schemDir.child("img_" + UUID.randomUUID().toString() + ".png").file();
+                File schemFile = schemDir.child(schem.name() + "." + Vars.schematicExtension).file();
                 Schematics.write(schem, new Fi(schemFile));
                 ImageIO.write(preview, "png", previewFile);
 
