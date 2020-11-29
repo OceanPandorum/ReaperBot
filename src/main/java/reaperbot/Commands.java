@@ -86,7 +86,7 @@ public class Commands{
 
             MessageHistory hist = listener.channel.getHistoryBefore(listener.lastMessage, number).complete();
             listener.channel.deleteMessages(hist.getRetrievedHistory()).queue();
-            Log.info("Deleted {0} messages.", number);
+            Log.info("Deleted @ messages.", number);
         });
 
         handler.register("postmap", bundle.get("commands.postmap.description"), (args, member) -> {

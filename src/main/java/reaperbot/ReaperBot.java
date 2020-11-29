@@ -63,7 +63,7 @@ public class ReaperBot{
 
         service = new ScheduledThreadPoolExecutor(2); // Todo надо бы на него побольше тасков наложить
         config = new Config();
-        bundle = I18NBundle.createBundle(new Fi("bundle", Files.FileType.classpath), new Locale(""), "Windows-1251");
+        bundle = I18NBundle.createBundle(new Fi("bundle", Files.FileType.classpath), Locale.ROOT, "Windows-1251");
         contentHandler = new ContentHandler();
         listener = new Listener();
         logger = new Logger();

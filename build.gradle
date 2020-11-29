@@ -7,7 +7,7 @@ repositories{
 }
 
 ext{
-    mindustryVersion = 'v113.2'
+    mindustryVersion = 'v118'
     jdaVersion = '4.2.0_168'
 }
 
