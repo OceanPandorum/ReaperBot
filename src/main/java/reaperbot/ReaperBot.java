@@ -66,7 +66,9 @@ public class ReaperBot{
         bundle = I18NBundle.createBundle(new Fi("bundle", Files.FileType.classpath), Locale.ROOT, "Windows-1251");
         contentHandler = new ContentHandler();
         listener = new Listener();
-        logger = new Logger();
+        if(config.get("logging").equals("on")){
+            logger = new Logger();
+        }
         commands = new Commands();
         net = new Net();
     }

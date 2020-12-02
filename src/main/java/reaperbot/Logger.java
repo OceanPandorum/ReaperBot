@@ -1,21 +1,17 @@
 package reaperbot;
 
 import arc.files.Fi;
-import arc.func.*;
+import arc.func.Func;
 import arc.struct.ObjectMap;
 import arc.util.Log;
-import arc.util.serialization.Json;
 import net.dv8tion.jda.api.EmbedBuilder;
-import net.dv8tion.jda.api.entities.ChannelType;
-import net.dv8tion.jda.api.entities.Message;
-import net.dv8tion.jda.api.events.ReadyEvent;
+import net.dv8tion.jda.api.entities.*;
 import net.dv8tion.jda.api.events.message.MessageUpdateEvent;
 import net.dv8tion.jda.api.events.message.guild.*;
 import net.dv8tion.jda.api.hooks.ListenerAdapter;
 import reaperbot.data.MessageMeta;
 
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
+import javax.annotation.*;
 import java.util.concurrent.TimeUnit;
 
 import static reaperbot.ReaperBot.*;
