@@ -35,16 +35,21 @@ public class ReaperBot{
     public static Config config;
     public static I18NBundle bundle;
 
+    public static boolean logging;
+
     public static ScheduledExecutorService service;
 
     public static void main(String[] args) throws InterruptedException, LoginException{
         init();
 
         listener.jda = JDABuilder.createDefault(config.get("token"))
-                .addEventListeners(listener, logger)
+                .addEventListeners(listener)
                 .disableCache(CacheFlag.VOICE_STATE)
                 .build();
         listener.jda.awaitReady();
+        if(logging){
+            listener.jda.addEventListener(logger);
+        }
 
         listener.guild = listener.jda.getGuildById(guildID);
 
@@ -66,7 +71,8 @@ public class ReaperBot{
         bundle = I18NBundle.createBundle(new Fi("bundle", Files.FileType.classpath), Locale.ROOT, "Windows-1251");
         contentHandler = new ContentHandler();
         listener = new Listener();
-        if(config.get("logging").equals("on")){
+        logging = config.get("logging").equals("on");
+        if(logging){
             logger = new Logger();
         }
         commands = new Commands();
