@@ -74,8 +74,10 @@ public class Commands{
             RuntimeMXBean rb = ManagementFactory.getRuntimeMXBean();
 
             long mem = (Runtime.getRuntime().totalMemory() - Runtime.getRuntime().freeMemory()) / 1024 / 1024;
-            builder.append(bundle.format("commands.status.cache-size", logger.hist.size));
-            builder.append('\n');
+            if(logging){
+                builder.append(bundle.format("commands.status.cache-size", logger.hist.size));
+                builder.append('\n');
+            }
             builder.append(bundle.format("commands.status.memory", mem));
             builder.append('\n');
             builder.append(bundle.format("commands.status.uptime", Strings.formatMillis(rb.getUptime())));

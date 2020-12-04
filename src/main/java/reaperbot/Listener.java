@@ -13,7 +13,7 @@ import net.dv8tion.jda.api.events.ReadyEvent;
 import net.dv8tion.jda.api.events.message.MessageReceivedEvent;
 import net.dv8tion.jda.api.events.message.react.MessageReactionAddEvent;
 import net.dv8tion.jda.api.hooks.ListenerAdapter;
-import org.hjson.JsonValue;
+import org.hjson.*;
 
 import javax.annotation.Nonnull;
 import java.awt.*;
@@ -39,16 +39,17 @@ public class Listener extends ListenerAdapter{
 
     public final Color normalColor = Color.decode("#b9fca6"), errorColor = Color.decode("#ff3838");
 
-    public final String[] swears = new Fi("great_russian_language.txt", classpath).readString("UTF-8")
-                                                                                          .replaceAll("\n", "")
-                                                                                          .split(", ");
+    public String[] swears;
 
     ObjectMap<Long, boolean[]> temp = new ObjectMap<>();
-    Seq<Long> roleMessages = new Seq<>();
+    Seq<Long> roleMessages;
 
     public Listener(){
         try{
             Core.net = new arc.Net();
+            roleMessages = config.getArray("ids").map(Long::parseLong);
+            Log.info("Loaded ids: @", roleMessages);
+            lateInitialize();
             Func<String, String> replace = s -> s.replace("\\", "\\\\").replace("_", "\\_")
                                                  .replace("*", "\\*").replace("`", "\\`");
 
@@ -93,13 +94,19 @@ public class Listener extends ListenerAdapter{
         }
     }
 
-    @Nonnull
+    protected void lateInitialize(){
+        all = new boolean[roleMessages.size];
+        Arrays.fill(all, true);
+        swears = new Fi("great_russian_language.txt", classpath).readString("UTF-8").replaceAll("\n", "").split(", ");
+    }
+
     protected String time(){
         return DateTimeFormatter.ofPattern("dd MMM yyyy HH:mm:ss ZZZZ").format(ZonedDateTime.now());
     }
 
     public void sendInfo(){
         try{
+            roleMessages = config.getArray("ids").map(Long::parseLong);
             for(JsonValue v : config.getJArray("info")){
                 if(!v.asObject().getBoolean("ignore", true)){
                     String title = v.asObject().get("title").asString();
@@ -115,12 +122,14 @@ public class Listener extends ListenerAdapter{
                     }
                 }
             }
-            all = new boolean[roleMessages.size];
-            Arrays.fill(all, true);
+            lateInitialize();
         }catch(Throwable t){
             throw new RuntimeException(t);
         }
-        Log.info("All embeds sent.");
+        Log.info("All embeds sent. Added: @", roleMessages);
+        JsonArray array = new JsonArray();
+        roleMessages.forEach(array::add);
+        config.save("ids", array);
     }
 
     @Override
