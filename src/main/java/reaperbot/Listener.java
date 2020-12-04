@@ -34,6 +34,7 @@ public class Listener extends ListenerAdapter{
     protected JDA jda;
     protected @Nullable TextChannel channel;
     protected @Nullable User lastUser;
+    protected @Nullable Member lastMember;
     protected @Nullable Message lastMessage, lastSentMessage;
 
     public final Color normalColor = Color.decode("#b9fca6"), errorColor = Color.decode("#ff3838");
@@ -145,7 +146,7 @@ public class Listener extends ListenerAdapter{
             long userId = event.getUserIdLong();
             temp.put(userId, b);
             if(Arrays.equals(b, all)){
-                guild.addRoleToMember(userId, guild.getRoleById(747908856604262469L)).queue();
+                guild.addRoleToMember(userId, guild.getRoleById(memberRoleId)).queue();
                 temp.remove(userId);
             }
         }
@@ -173,6 +174,10 @@ public class Listener extends ListenerAdapter{
                 }
             }
         }, messageDeleteTime);
+    }
+
+    public void embed(MessageEmbed embed){
+        lastSentMessage = channel.sendMessage(embed).complete();
     }
 
     public void text(String text, Object... args){

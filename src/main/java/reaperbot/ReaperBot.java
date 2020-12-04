@@ -20,6 +20,10 @@ public class ReaperBot{
     mapsChannelID = 744906782370955274L,
     schematicsChannelID = 744906867183976569L;
 
+    public static final long
+    adminRoleId = 747906993259282565L,
+    memberRoleId = 747908856604262469L;
+
     public static final int messageDeleteTime = 20000; // 20 секунд
     public static final long guildID = 744814929701240882L; // id сервера
 

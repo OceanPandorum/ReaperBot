@@ -1,6 +1,7 @@
 package reaperbot;
 
 import arc.files.Fi;
+import arc.func.*;
 import arc.util.*;
 import arc.util.CommandHandler.*;
 import arc.util.io.Streams;
@@ -28,37 +29,43 @@ public class Commands{
     private final String prefix = "$";
     private final CommandHandler handler = new CommandHandler(prefix), adminHandler = new CommandHandler(prefix);
 
-    public void appendCommandInfo(Command command, StringBuilder builder){
-        builder.append(prefix);
-        builder.append("**");
-        builder.append(command.text);
-        builder.append("**");
-        if(command.params.length > 0){
-            builder.append(" *");
-            builder.append(command.paramText);
-            builder.append('*');
-        }
-        builder.append(" - ");
-        builder.append(command.description);
-        builder.append('\n');
-    }
-
     Commands(){
         handler.register("help", bundle.get("commands.help.description"), args -> {
-            StringBuilder builder = new StringBuilder();
+            StringBuilder common = new StringBuilder();
+            Func2<Command, StringBuilder, Void> append = (command, builder) -> {
+                builder.append(prefix);
+                builder.append("**");
+                builder.append(command.text);
+                builder.append("**");
+                if(command.params.length > 0){
+                    builder.append(" *");
+                    builder.append(command.paramText);
+                    builder.append('*');
+                }
+                builder.append(" - ");
+                builder.append(command.description);
+                builder.append('\n');
+                return null;
+            };
 
             for(Command command : handler.getCommandList()){
-                appendCommandInfo(command, builder);
+                append.get(command, common);
             }
 
-            if(isAdmin(listener.guild.getMember(listener.lastUser))){
-                builder.append(bundle.get("commands.help.admin.title"));
+            if(isAdmin(listener.lastMember)){
+                StringBuilder admin = new StringBuilder();
                 for(Command command : adminHandler.getCommandList()){
-                    appendCommandInfo(command, builder);
+                    append.get(command, admin);
                 }
+                MessageEmbed embed = new EmbedBuilder()
+                        .setColor(listener.normalColor)
+                        .addField(bundle.get("commands.help.title"), common.toString(), false)
+                        .addField(bundle.get("commands.help.admin.title"), admin.toString(), true)
+                        .build();
+                listener.embed(embed);
+            }else{
+                listener.info(bundle.get("commands.help.title"), common.toString());
             }
-
-            listener.info(bundle.get("commands.help.title"), builder.toString());
         });
 
         // для дебагов
@@ -203,6 +210,7 @@ public class Commands{
         if(event.getMessage().getContentRaw().startsWith(prefix)){
             listener.channel = event.getTextChannel();
             listener.lastUser = event.getAuthor();
+            listener.lastMember = event.getMember();
             listener.lastMessage = event.getMessage();
         }
 
@@ -216,7 +224,8 @@ public class Commands{
 
     boolean isAdmin(@Nullable Member member){
         return member != null && !member.getRoles().isEmpty() &&
-               member.getRoles().stream().anyMatch(role -> role.hasPermission(Permission.ADMINISTRATOR));
+               (member.isOwner() || member.getRoles().stream().anyMatch(role -> role.getIdLong() == adminRoleId ||
+                                                                                role.hasPermission(Permission.ADMINISTRATOR)));
     }
 
     boolean handleResponse(CommandResponse response, boolean logUnknown){
