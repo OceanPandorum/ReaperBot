@@ -28,23 +28,34 @@ public class Commands{
     private final String prefix = "$";
     private final CommandHandler handler = new CommandHandler(prefix), adminHandler = new CommandHandler(prefix);
 
+    public void appendCommandInfo(Command command, StringBuilder builder){
+        builder.append(prefix);
+        builder.append("**");
+        builder.append(command.text);
+        builder.append("**");
+        if(command.params.length > 0){
+            builder.append(" *");
+            builder.append(command.paramText);
+            builder.append('*');
+        }
+        builder.append(" - ");
+        builder.append(command.description);
+        builder.append('\n');
+    }
+
     Commands(){
         handler.register("help", bundle.get("commands.help.description"), args -> {
             StringBuilder builder = new StringBuilder();
 
             for(Command command : handler.getCommandList()){
-                builder.append(prefix);
-                builder.append("**");
-                builder.append(command.text);
-                builder.append("**");
-                if(command.params.length > 0){
-                    builder.append(" *");
-                    builder.append(command.paramText);
-                    builder.append('*');
+                appendCommandInfo(command, builder);
+            }
+
+            if(isAdmin(listener.guild.getMember(listener.lastUser))){
+                builder.append(bundle.get("commands.help.admin.title"));
+                for(Command command : adminHandler.getCommandList()){
+                    appendCommandInfo(command, builder);
                 }
-                builder.append(" - ");
-                builder.append(command.description);
-                builder.append('\n');
             }
 
             listener.info(bundle.get("commands.help.title"), builder.toString());
@@ -89,7 +100,7 @@ public class Commands{
             Log.info("Deleted @ messages.", number);
         });
 
-        handler.register("postmap", bundle.get("commands.postmap.description"), (args, member) -> {
+        handler.register("postmap", bundle.get("commands.postmap.description"), args -> {
             Message message = listener.lastMessage;
 
             if(message.getAttachments().size() != 1 || !message.getAttachments().get(0).getFileName().endsWith(Vars.mapExtension)){
@@ -130,7 +141,7 @@ public class Commands{
             }
         });
 
-        handler.register("postschem", "[schem]", bundle.get("commands.postschem.description"), (args, member) -> {
+        handler.register("postschem", "[schem]", bundle.get("commands.postschem.description"), args -> {
             Message message = listener.lastMessage;
 
             try{

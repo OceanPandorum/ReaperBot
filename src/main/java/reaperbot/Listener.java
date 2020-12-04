@@ -3,7 +3,7 @@ package reaperbot;
 import arc.Core;
 import arc.files.Fi;
 import arc.func.Func;
-import arc.struct.ObjectMap;
+import arc.struct.*;
 import arc.util.*;
 import mindustry.net.Host;
 import net.dv8tion.jda.api.EmbedBuilder;
@@ -28,6 +28,8 @@ import static arc.Files.FileType.classpath;
 import static reaperbot.ReaperBot.*;
 
 public class Listener extends ListenerAdapter{
+    private boolean[] all;
+
     protected Guild guild;
     protected JDA jda;
     protected @Nullable TextChannel channel;
@@ -41,7 +43,7 @@ public class Listener extends ListenerAdapter{
                                                                                           .split(", ");
 
     ObjectMap<Long, boolean[]> temp = new ObjectMap<>();
-    long[] roleMessages = {760253624789762058L, 760253623602642954L}; // сообщения с правилами
+    Seq<Long> roleMessages = new Seq<>();
 
     public Listener(){
         try{
@@ -96,16 +98,28 @@ public class Listener extends ListenerAdapter{
     }
 
     public void sendInfo(){
-        for(JsonValue v : config.getJArray("info")){
-            String title = v.asObject().get("title").asString();
-            String description = v.asObject().get("description").asString();
-            String channelId = v.asObject().get("channel-id").asString();
+        try{
+            for(JsonValue v : config.getJArray("info")){
+                if(!v.asObject().getBoolean("ignore", true)){
+                    String title = v.asObject().get("title").asString();
+                    String description = v.asObject().get("description").asString();
+                    String channelId = v.asObject().get("channel-id").asString();
+                    boolean listen = v.asObject().getBoolean("listen", false);
 
-            MessageEmbed e = new EmbedBuilder().setTitle(title).setDescription(description).setColor(normalColor).build();
+                    MessageEmbed e = new EmbedBuilder().setTitle(title).setDescription(description).setColor(normalColor).build();
 
-            guild.getTextChannelById(channelId).sendMessage(e).queue();
+                    Message m = guild.getTextChannelById(channelId).sendMessage(e).complete();
+                    if(listen){
+                        roleMessages.add(m.getIdLong());
+                    }
+                }
+            }
+            all = new boolean[roleMessages.size];
+            Arrays.fill(all, true);
+        }catch(Throwable t){
+            throw new RuntimeException(t);
         }
-        Log.info("All embeds sended.");
+        Log.info("All embeds sent.");
     }
 
     @Override
@@ -121,14 +135,20 @@ public class Listener extends ListenerAdapter{
 
     @Override
     public void onMessageReactionAdd(@Nonnull MessageReactionAddEvent event){
-        boolean[] b = temp.get(event.getUserIdLong(), () -> new boolean[2]);
-        if(roleMessages[0] == event.getMessageIdLong()){
-            b[0] = true;
-        }else if(roleMessages[1] == event.getMessageIdLong()){
-            b[1] = true;
+        if(!roleMessages.isEmpty()){
+            boolean[] b = temp.get(event.getUserIdLong(), () -> new boolean[roleMessages.size]);
+            for(int i = 0; i < roleMessages.size; i++){
+                if(roleMessages.get(i) == event.getMessageIdLong()){
+                    b[i] = true;
+                }
+            }
+            long userId = event.getUserIdLong();
+            temp.put(userId, b);
+            if(Arrays.equals(b, all)){
+                guild.addRoleToMember(userId, guild.getRoleById(747908856604262469L)).queue();
+                temp.remove(userId);
+            }
         }
-        temp.put(event.getUserIdLong(), b);
-        accept(event.getUserIdLong());
     }
 
     @Nonnull
@@ -139,13 +159,6 @@ public class Listener extends ListenerAdapter{
             name += " / " + member.getNickname();
         }
         return name;
-    }
-
-    private void accept(long id){
-        if(temp.get(id)[0] && temp.get(id)[1]){
-            guild.addRoleToMember(id, guild.getRoleById(747908856604262469L)).queue();
-            temp.remove(id);
-        }
     }
 
     public void deleteMessages(){

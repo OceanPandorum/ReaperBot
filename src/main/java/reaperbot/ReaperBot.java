@@ -4,6 +4,7 @@ import arc.Files;
 import arc.files.Fi;
 import arc.util.I18NBundle;
 import net.dv8tion.jda.api.JDABuilder;
+import net.dv8tion.jda.api.requests.GatewayIntent;
 import net.dv8tion.jda.api.utils.cache.CacheFlag;
 
 import javax.security.auth.login.LoginException;
@@ -44,7 +45,8 @@ public class ReaperBot{
 
         listener.jda = JDABuilder.createDefault(config.get("token"))
                 .addEventListeners(listener)
-                .disableCache(CacheFlag.VOICE_STATE)
+                .disableCache(CacheFlag.VOICE_STATE, CacheFlag.CLIENT_STATUS, CacheFlag.ACTIVITY)
+                .disableIntents(GatewayIntent.DIRECT_MESSAGE_REACTIONS, GatewayIntent.DIRECT_MESSAGE_REACTIONS)
                 .build();
         listener.jda.awaitReady();
         if(logging){
