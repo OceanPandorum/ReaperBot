@@ -16,6 +16,9 @@ import java.util.concurrent.TimeUnit;
 
 import static reaperbot.ReaperBot.*;
 
+/*
+ * Очень простая реализация логгирования сообщений
+ */
 public class Logger extends ListenerAdapter{
     private final Fi tmp = new Fi("message.txt");
     private final int maxLength = 1024;

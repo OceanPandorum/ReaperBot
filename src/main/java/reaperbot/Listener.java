@@ -20,7 +20,6 @@ import java.awt.*;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
-import java.util.Timer;
 import java.util.*;
 import java.util.concurrent.*;
 
@@ -53,7 +52,7 @@ public class Listener extends ListenerAdapter{
             Func<String, String> replace = s -> s.replace("\\", "\\\\").replace("_", "\\_")
                                                  .replace("*", "\\*").replace("`", "\\`");
 
-            service.schedule(() -> {
+            service.scheduleAtFixedRate(() -> {
                 List<Host> results = new CopyOnWriteArrayList<>();
 
                 config.getArray("servers").forEach(server -> net.pingServer(server, results::add));
@@ -65,28 +64,26 @@ public class Listener extends ListenerAdapter{
                     EmbedBuilder embed = new EmbedBuilder();
                     embed.setColor(normalColor);
 
-                    results.forEach(result -> {
-                        if(result.name != null){
-                            embed.addField(result.address, Strings.format("*@*\n@: @\n@: @\n@: @\n@: @\n@: @\n_\n_\n",
-                                    replace.get(result.name),
-                                    bundle.get("listener.players"),
-                                    (result.playerLimit > 0 ? result.players + "/" + result.playerLimit : result.players),
-                                    bundle.get("listener.map"),
-                                    replace.get(result.mapname).replaceAll("\\[.*?\\]", ""),
-                                    bundle.get("listener.wave"),
-                                    result.wave,
-                                    bundle.get("listener.version"),
-                                    result.version,
-                                    bundle.get("listener.mode"),
-                                    Strings.capitalize(result.mode.name())), false);
-                        }
+                    results.stream().filter(h -> h.name != null).forEach(result -> {
+                        embed.addField(result.address, Strings.format("*@*\n@: @\n@: @\n@: @\n@: @\n@: @\n_\n_\n",
+                            replace.get(result.name),
+                            bundle.get("listener.players"),
+                            (result.playerLimit > 0 ? result.players + "/" + result.playerLimit : result.players),
+                            bundle.get("listener.map"),
+                            replace.get(result.mapname).replaceAll("\\[.*?\\]", ""),
+                            bundle.get("listener.wave"),
+                            result.wave,
+                            bundle.get("listener.version"),
+                            result.version,
+                            bundle.get("listener.mode"),
+                            Strings.capitalize(result.mode.name())), false);
                     });
 
                     embed.setFooter(bundle.format("listener.servers.last-update", time()));
 
                     jda.getTextChannelById(serverChannelID).editMessageById(747117737268215882L, embed.build()).queue();
                 });
-            },60, TimeUnit.SECONDS);
+            }, 5, 30, TimeUnit.SECONDS);
 
             Log.info("Common listener loaded.");
         }catch(Exception e){
@@ -174,15 +171,12 @@ public class Listener extends ListenerAdapter{
     public void deleteMessages(){
         Message last = lastMessage, lastSent = lastSentMessage;
 
-        new Timer().schedule(new TimerTask(){
-            @Override
-            public void run(){
-                if(last != null && lastMessage != null){
-                    last.delete().queue();
-                    lastSent.delete().queue();
-                }
+        net.run(messageDeleteTime, () -> {
+            if(last != null && lastMessage != null){
+                last.delete().queue();
+                lastSent.delete().queue();
             }
-        }, messageDeleteTime);
+        });
     }
 
     public void embed(MessageEmbed embed){

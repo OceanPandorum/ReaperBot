@@ -41,6 +41,7 @@ public class ReaperBot{
     public static I18NBundle bundle;
 
     public static boolean logging;
+    public static final String prefix = "$";
 
     public static ScheduledExecutorService service;
 
@@ -72,7 +73,7 @@ public class ReaperBot{
         schemDir.mkdirs();
         mapDir.mkdirs();
 
-        service = new ScheduledThreadPoolExecutor(2); // Todo надо бы на него побольше тасков наложить
+        service = new ScheduledThreadPoolExecutor(2);
         config = new Config();
         bundle = I18NBundle.createBundle(new Fi("bundle", Files.FileType.classpath), Locale.ROOT, "Windows-1251");
         contentHandler = new ContentHandler();

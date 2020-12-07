@@ -175,6 +175,7 @@ public class ContentHandler{
     public BufferedImage previewSchematic(Schematic schem) throws Exception{
         BufferedImage image = new BufferedImage(schem.width * 32, schem.height * 32, BufferedImage.TYPE_INT_ARGB);
 
+        Draw.reset();
         Seq<BuildPlan> requests = schem.tiles.map(t -> new BuildPlan(t.x, t.y, t.rotation, t.block, t.config));
         currentGraphics = image.createGraphics();
         currentImage = image;

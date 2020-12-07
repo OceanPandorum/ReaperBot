@@ -58,7 +58,9 @@ public class Net{
         new Timer().schedule(new TimerTask(){
             @Override
             public void run(){
-                r.run();
+                if(r != null){
+                    r.run();
+                }
             }
         }, delay);
     }

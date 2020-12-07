@@ -26,7 +26,6 @@ import static reaperbot.ContentHandler.*;
 import static reaperbot.ReaperBot.*;
 
 public class Commands{
-    private final String prefix = "$";
     private final CommandHandler handler = new CommandHandler(prefix), adminHandler = new CommandHandler(prefix);
 
     Commands(){
@@ -78,14 +77,10 @@ public class Commands{
                 builder.append(bundle.format("commands.status.cache-size", logger.hist.size));
                 builder.append('\n');
             }
-            builder.append(bundle.format("commands.status.memory", mem));
-            builder.append('\n');
-            builder.append(bundle.format("commands.status.uptime", Strings.formatMillis(rb.getUptime())));
-            builder.append('\n');
-            builder.append(bundle.format("commands.status.swears-count", listener.swears.length));
-            builder.append('\n');
-            builder.append(bundle.format("commands.status.schem-dir-size", schemDir.findAll(f -> f.extension().equals(Vars.schematicExtension)).size));
-            builder.append('\n');
+            builder.append(bundle.format("commands.status.memory", mem)).append('\n');
+            builder.append(bundle.format("commands.status.uptime", Strings.formatMillis(rb.getUptime()))).append('\n');
+            builder.append(bundle.format("commands.status.swears-count", listener.swears.length)).append('\n');
+            builder.append(bundle.format("commands.status.schem-dir-size", schemDir.findAll(f -> f.extension().equals(Vars.schematicExtension)).size)).append('\n');
             builder.append(bundle.format("commands.status.map-dir-size", mapDir.findAll(f -> f.extension().equals(Vars.mapExtension)).size));
 
             listener.info(bundle.get("commands.status.title"), builder.toString());
@@ -97,7 +92,7 @@ public class Commands{
                 return;
             }
 
-            int number = Integer.parseInt(args[0]) + 1;
+            int number = Strings.parseInt(args[0]);
 
             if(number >= 100){
                 listener.err(bundle.format("commands.delete.limit-number", 100));
