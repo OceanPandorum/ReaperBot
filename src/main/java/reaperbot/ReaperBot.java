@@ -15,14 +15,14 @@ import java.util.concurrent.*;
 
 public class ReaperBot{
     public static final Snowflake
-            serverChannelID = Snowflake.of(746000026269909002L),
-            commandChannelID = Snowflake.of(744874986073751584L),
-            mapsChannelID = Snowflake.of(744906782370955274L),
-            schematicsChannelID = Snowflake.of(744906867183976569L);
+    serverChannelID = Snowflake.of(746000026269909002L),
+    commandChannelID = Snowflake.of(744874986073751584L),
+    mapsChannelID = Snowflake.of(744906782370955274L),
+    schematicsChannelID = Snowflake.of(744906867183976569L);
 
     public static final Snowflake
-            adminRoleId = Snowflake.of(747906993259282565L),
-            memberRoleId = Snowflake.of(747908856604262469L);
+    adminRoleId = Snowflake.of(747906993259282565L),
+    memberRoleId = Snowflake.of(747908856604262469L);
 
     public static Snowflake ownerId;
 

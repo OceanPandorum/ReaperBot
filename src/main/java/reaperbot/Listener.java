@@ -30,7 +30,6 @@ import static reaperbot.ReaperBot.*;
 public class Listener extends ReactiveEventAdapter{
     private boolean[] all;
 
-    protected GatewayDiscordClient gateway;
     protected Guild guild;
     protected TextChannel channel;
     protected Member lastMember;
