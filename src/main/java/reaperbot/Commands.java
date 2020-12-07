@@ -1,28 +1,28 @@
 package reaperbot;
 
 import arc.files.Fi;
-import arc.func.*;
+import arc.func.Cons2;
 import arc.util.*;
 import arc.util.CommandHandler.*;
 import arc.util.io.Streams;
+import discord4j.core.event.domain.message.MessageCreateEvent;
+import discord4j.core.object.entity.*;
+import discord4j.core.object.entity.channel.TextChannel;
+import discord4j.core.spec.EmbedCreateSpec;
+import discord4j.rest.util.Permission;
 import mindustry.Vars;
-import mindustry.game.Schematic;
-import mindustry.game.Schematics;
-import net.dv8tion.jda.api.EmbedBuilder;
-import net.dv8tion.jda.api.Permission;
-import net.dv8tion.jda.api.entities.*;
-import net.dv8tion.jda.api.events.message.MessageReceivedEvent;
+import mindustry.game.*;
+import org.reactivestreams.Publisher;
+import reactor.core.publisher.Mono;
 
-import javax.annotation.Nullable;
 import javax.imageio.ImageIO;
 import java.awt.image.BufferedImage;
-import java.io.File;
-import java.io.FileOutputStream;
+import java.io.*;
 import java.lang.management.*;
-import java.util.List;
-import java.util.UUID;
+import java.util.*;
+import java.util.function.Consumer;
 
-import static reaperbot.ContentHandler.*;
+import static reaperbot.ContentHandler.Map;
 import static reaperbot.ReaperBot.*;
 
 public class Commands{
@@ -31,7 +31,7 @@ public class Commands{
     Commands(){
         handler.register("help", bundle.get("commands.help.description"), args -> {
             StringBuilder common = new StringBuilder();
-            Func2<Command, StringBuilder, Void> append = (command, builder) -> {
+            Cons2<Command, StringBuilder> append = (command, builder) -> {
                 builder.append(prefix);
                 builder.append("**");
                 builder.append(command.text);
@@ -44,7 +44,6 @@ public class Commands{
                 builder.append(" - ");
                 builder.append(command.description);
                 builder.append('\n');
-                return null;
             };
 
             for(Command command : handler.getCommandList()){
@@ -56,12 +55,10 @@ public class Commands{
                 for(Command command : adminHandler.getCommandList()){
                     append.get(command, admin);
                 }
-                MessageEmbed embed = new EmbedBuilder()
-                        .setColor(listener.normalColor)
-                        .addField(bundle.get("commands.help.title"), common.toString(), false)
-                        .addField(bundle.get("commands.help.admin.title"), admin.toString(), true)
-                        .build();
-                listener.embed(embed);
+
+                listener.embed(embed -> embed.setColor(listener.normalColor)
+                                             .addField(bundle.get("commands.help.title"), common.toString(), false)
+                                             .addField(bundle.get("commands.help.admin.title"), admin.toString(), true));
             }else{
                 listener.info(bundle.get("commands.help.title"), common.toString());
             }
@@ -73,10 +70,6 @@ public class Commands{
             RuntimeMXBean rb = ManagementFactory.getRuntimeMXBean();
 
             long mem = (Runtime.getRuntime().totalMemory() - Runtime.getRuntime().freeMemory()) / 1024 / 1024;
-            if(logging){
-                builder.append(bundle.format("commands.status.cache-size", logger.hist.size));
-                builder.append('\n');
-            }
             builder.append(bundle.format("commands.status.memory", mem)).append('\n');
             builder.append(bundle.format("commands.status.uptime", Strings.formatMillis(rb.getUptime()))).append('\n');
             builder.append(bundle.format("commands.status.swears-count", listener.swears.length)).append('\n');
@@ -99,43 +92,47 @@ public class Commands{
                 return;
             }
 
-            MessageHistory hist = listener.channel.getHistoryBefore(listener.lastMessage, number).complete();
-            listener.channel.deleteMessages(hist.getRetrievedHistory()).queue();
+            listener.channel.getMessagesBefore(listener.lastMessage.getId())
+                            .limitRequest(number)
+                            .subscribe(m -> m.delete().block());
+
             Log.info("Deleted @ messages.", number);
         });
 
         handler.register("postmap", bundle.get("commands.postmap.description"), args -> {
             Message message = listener.lastMessage;
 
-            if(message.getAttachments().size() != 1 || !message.getAttachments().get(0).getFileName().endsWith(Vars.mapExtension)){
+            if(message.getAttachments().size() != 1 ||
+               message.getAttachments().stream().findFirst().map(a -> !a.getFilename().endsWith(Vars.mapExtension)).orElse(true)){
                 listener.err(bundle.get("commands.postmap.empty-attachments"));
                 listener.deleteMessages();
                 return;
             }
 
-            Message.Attachment a = message.getAttachments().get(0);
-
             try{
+                Attachment a = message.getAttachments().stream().findFirst().orElseThrow(RuntimeException::new);
+
                 Map map = contentHandler.readMap(net.download(a.getUrl()));
-                File mapFile = mapDir.child(a.getFileName()).file();
-                Fi image = mapDir.child("image_" + a.getFileName().replace(".msav", ".png"));
-                Streams.copy(net.download(a.getUrl()), new FileOutputStream(mapFile));
+                Fi mapFile = mapDir.child(a.getFilename());
+                Fi image = mapDir.child("image_" + a.getFilename().replace(Vars.mapExtension, "png"));
+                Streams.copy(net.download(a.getUrl()), mapFile.write());
                 ImageIO.write(map.image, "png", image.file());
 
-                User current = listener.lastUser;
+                Member member = message.getAuthorAsMember().block();
+                Objects.requireNonNull(member);
 
-                String name = listener.fullName(current);
+                Consumer<EmbedCreateSpec> embed = e -> {
+                    e.setColor(listener.normalColor);
+                    e.setImage("attachment://" + image.name());
+                    e.setAuthor(fullName(member), null, member.getAvatarUrl());
+                    e.setTitle(map.name == null ? a.getFilename().replace(Vars.mapExtension, "") : map.name);
+                    if(map.description != null) e.setFooter(map.description, null);
+                };
 
-                EmbedBuilder builder = new EmbedBuilder()
-                .setColor(listener.normalColor)
-                .setImage("attachment://" + image.name())
-                .setAuthor(name, null, current.getAvatarUrl())
-                .setTitle(map.name == null ? a.getFileName().replace(Vars.mapExtension, "") : map.name);
-
-                if(map.description != null) builder.setFooter(map.description);
-
-                listener.guild.getTextChannelById(mapsChannelID).sendFile(mapFile)
-                              .addFile(image.file()).embed(builder.build()).queue();
+                listener.guild.getChannelById(mapsChannelID)
+                              .cast(TextChannel.class)
+                              .flatMap(c -> c.createMessage(m -> m.addFile(image.name(), image.read()).setEmbed(embed).addFile(mapFile.name(), mapFile.read())))
+                              .block();
 
                 listener.text(bundle.get("commands.postmap.successful"));
             }catch(Exception e){
@@ -147,11 +144,12 @@ public class Commands{
 
         handler.register("postschem", "[schem]", bundle.get("commands.postschem.description"), args -> {
             Message message = listener.lastMessage;
+            Member member = message.getAuthorAsMember().block();
 
             try{
                 Schematic schem = message.getAttachments().size() == 1
-                ? contentHandler.parseSchematicURL(message.getAttachments().get(0).getUrl())
-                : contentHandler.parseSchematic(args.length > 0 ? args[0] : null);
+                ? contentHandler.parseSchematicURL(message.getAttachments().stream().findFirst().orElseThrow(RuntimeException::new).getUrl())
+                : contentHandler.parseSchematic(args.length > 0 && args[0].startsWith("bXNjaAB") ? args[0] : null);
 
                 if(schem == null){
                     throw new NullPointerException(bundle.get("commands.postschem.schem-is-null"));
@@ -159,31 +157,35 @@ public class Commands{
 
                 BufferedImage preview = contentHandler.previewSchematic(schem);
 
-                File previewFile = schemDir.child("img_" + UUID.randomUUID().toString() + ".png").file();
-                File schemFile = schemDir.child(schem.name() + "." + Vars.schematicExtension).file();
-                Schematics.write(schem, new Fi(schemFile));
-                ImageIO.write(preview, "png", previewFile);
+                Fi previewFile = schemDir.child("img_" + UUID.randomUUID().toString() + ".png");
+                Fi schemFile = schemDir.child(schem.name() + "." + Vars.schematicExtension);
+                Schematics.write(schem, schemFile);
+                ImageIO.write(preview, "png", previewFile.file());
 
-                EmbedBuilder builder = new EmbedBuilder().setColor(listener.normalColor).setColor(listener.normalColor)
-                                                         .setImage("attachment://" + previewFile.getName())
-                                                         .setAuthor(listener.fullName(message.getAuthor()), null,
-                                                                    message.getAuthor().getAvatarUrl()).setTitle(schem.name());
+                Consumer<EmbedCreateSpec> embed = e -> {
+                    e.setColor(listener.normalColor);
+                    e.setImage("attachment://" + previewFile.name());
+                    e.setAuthor(fullName(member), null, member.getAvatarUrl()).setTitle(schem.name());
+                    StringBuilder field = new StringBuilder();
 
-                StringBuilder field = new StringBuilder();
+                    schem.requirements().forEach(stack -> {
+                        GuildEmoji result = listener.guild.getEmojis()
+                                .filter(emoji -> emoji.getName().equalsIgnoreCase(stack.item.name.replace("-", "")))
+                                .blockFirst();
 
-                schem.requirements().forEach(stack -> {
-                    List<Emote> emotes = listener.jda.getEmotesByName(stack.item.name.replace("-", ""), true);
-                    Emote result = emotes.isEmpty() ? listener.jda.getEmotesByName("ohno", true).get(0) : emotes.get(0);
+                        field.append(result.asFormat()).append(stack.amount).append("  ");
+                    });
+                    e.setTitle(schem.name());
+                    e.setDescription(field.toString());
+                };
 
-                    field.append(result.getAsMention()).append(stack.amount).append("  ");
-                });
-                builder.setTitle(schem.name());
-                builder.setDescription(field.toString());
+                listener.guild.getChannelById(schematicsChannelID)
+                              .cast(TextChannel.class)
+                              .flatMap(c -> c.createMessage(m -> m.addFile(previewFile.name(), previewFile.read())
+                                                                  .setEmbed(embed).addFile(schemFile.name(), schemFile.read())))
+                              .block();
 
-                listener.guild.getTextChannelById(schematicsChannelID).sendFile(schemFile)
-                              .addFile(previewFile).embed(builder.build()).queue();
-
-                message.delete().queue();
+                message.delete().block();
             }catch(Exception e){
                 Log.err(e);
                 listener.err(bundle.get("commands.parsing-error"), Strings.neatError(e, true));
@@ -192,37 +194,47 @@ public class Commands{
         });
     }
 
-    void handle(MessageReceivedEvent event){
-        String text = event.getMessage().getContentRaw();
+    public Mono<Void> handle(MessageCreateEvent event){
+        Message message = event.getMessage();
+        TextChannel channel = message.getChannel().cast(TextChannel.class).blockOptional().orElseThrow(RuntimeException::new);
+        Member member = event.getMember().orElseThrow(RuntimeException::new);
+        String text = message.getContent();
 
-        if(!commands.isAdmin(event.getMember())){
+        if(!commands.isAdmin(member)){
             if(Structs.contains(listener.swears, text::equalsIgnoreCase)){
-                event.getMessage().delete().queue();
-                return;
+                return Mono.fromRunnable(() -> message.delete().block());
             }
         }
 
-        if(event.getChannel().getIdLong() != commandChannelID && !isAdmin(event.getMember())) return;
+        if(!commandChannelID.equals(channel.getId()) && !isAdmin(member)) return Mono.empty();
 
-        if(event.getMessage().getContentRaw().startsWith(prefix)){
-            listener.channel = event.getTextChannel();
-            listener.lastUser = event.getAuthor();
-            listener.lastMember = event.getMember();
-            listener.lastMessage = event.getMessage();
+        if(text.startsWith(prefix)){
+            listener.channel = channel;
+            listener.lastMember = member;
+            listener.lastMessage = message;
         }
 
-        if(isAdmin(event.getMember())){
+        return Mono.just(member).flatMap(m -> isAdmin(m) ? Mono.fromRunnable(() -> {
             boolean unknown = handleResponse(adminHandler.handleMessage(text), false);
             handleResponse(handler.handleMessage(text), !unknown);
-        }else{
-            handleResponse(handler.handleMessage(text), true);
-        }
+        }) : Mono.fromRunnable(() -> handleResponse(handler.handleMessage(text), true)));
     }
 
-    boolean isAdmin(@Nullable Member member){
-        return member != null && !member.getRoles().isEmpty() &&
-               (member.isOwner() || member.getRoles().stream().anyMatch(role -> role.getIdLong() == adminRoleId ||
-                                                                                role.hasPermission(Permission.ADMINISTRATOR)));
+    public boolean isAdmin(Member member){
+        if(member == null) return false;
+        boolean admin = member.getRoles()
+                              .any(r -> adminRoleId.equals(r.getId()) || r.getPermissions().contains(Permission.ADMINISTRATOR))
+                              .blockOptional().orElse(false);
+
+        return ownerId.equals(member.getId()) || admin;
+    }
+
+    protected String fullName(Member member){
+        String effectiveName = member.getUsername();
+        if(member.getNickname().isPresent()){
+            effectiveName += " / " + member.getNickname();
+        }
+        return effectiveName;
     }
 
     boolean handleResponse(CommandResponse response, boolean logUnknown){

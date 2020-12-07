@@ -8,16 +8,14 @@ repositories{
 
 ext{
     mindustryVersion = 'v120'
-    jdaVersion = '4.2.0_168'
+    d4jVersion = '3.1.2'
 }
 
 project.ext.mainClassName = "reaperbot.ReaperBot"
 
 dependencies{
-    implementation("net.dv8tion:JDA:$jdaVersion"){
-        exclude module: 'opus-java'
-    }
     implementation "org.hjson:hjson:3.0.0"
+    implementation "com.discord4j:discord4j-core:$d4jVersion"
     implementation "com.github.Anuken.Arc:arc-core:$mindustryVersion"
     implementation "com.github.Anuken.Mindustry:core:$mindustryVersion"
 }

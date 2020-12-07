@@ -34,19 +34,16 @@ import static mindustry.Vars.*;
 import static reaperbot.ReaperBot.net;
 
 public class ContentHandler{
-    public static final byte[] mapHeader = {77, 83, 65, 86};
-    public static final String schemHeader = "bXNjaAB";
-
     Color co = new Color();
     Graphics2D currentGraphics;
     BufferedImage currentImage;
 
     public ContentHandler(){
         Version.enabled = false;
-        Vars.content = new ContentLoader();
-        Vars.content.createBaseContent();
+        content = new ContentLoader();
+        content.createBaseContent();
         for(ContentType type : ContentType.values()){
-            for(Content content : Vars.content.getBy(type)){
+            for(Content content : content.getBy(type)){
                 try{
                     content.init();
                 }catch(Throwable ignored){}
@@ -54,7 +51,7 @@ public class ContentHandler{
         }
 
         String assets = "content/";
-        Vars.state = new GameState();
+        state = new GameState();
 
         TextureAtlasData data = new TextureAtlasData(new Fi(assets + "sprites/sprites.atlas"), new Fi(assets + "sprites"), false);
         Core.atlas = new TextureAtlas();
@@ -123,7 +120,7 @@ public class ContentHandler{
         };
 
         for(ContentType type : ContentType.values()){
-            for(Content content : Vars.content.getBy(type)){
+            for(Content content : content.getBy(type)){
                 try{
                     content.load();
                 }catch(Throwable ignored){}
@@ -133,7 +130,7 @@ public class ContentHandler{
         try{
             BufferedImage image = ImageIO.read(new File(assets + "/sprites/block_colors.png"));
 
-            for(Block block : Vars.content.blocks()){
+            for(Block block : content.blocks()){
                 block.mapColor.argb8888(image.getRGB(block.id, 0));
                 if(block instanceof OreBlock){
                     block.mapColor.set(((OreBlock)block).itemDrop.color);
@@ -302,7 +299,7 @@ public class ContentHandler{
 
     public static class Map{
         public String name, author, description;
-        public ObjectMap<String, String> tags = new ObjectMap<>();
+        public StringMap tags = new StringMap();
         public BufferedImage image;
     }
 
