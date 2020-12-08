@@ -232,7 +232,7 @@ public class Commands{
     protected String fullName(Member member){
         String effectiveName = member.getUsername();
         if(member.getNickname().isPresent()){
-            effectiveName += " / " + member.getNickname();
+            effectiveName += " / " + member.getNickname().get();
         }
         return effectiveName;
     }
