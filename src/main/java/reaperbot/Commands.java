@@ -12,7 +12,10 @@ import discord4j.core.spec.EmbedCreateSpec;
 import discord4j.rest.util.Permission;
 import mindustry.Vars;
 import mindustry.game.*;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Component;
 import reactor.core.publisher.Mono;
+import reaperbot.service.MessageService;
 
 import javax.imageio.ImageIO;
 import java.awt.image.BufferedImage;
@@ -23,10 +26,14 @@ import java.util.function.Consumer;
 import static reaperbot.ContentHandler.Map;
 import static reaperbot.Constants.*;
 
+@Component
 public class Commands{
     private final CommandHandler handler = new CommandHandler(config.prefix), adminHandler = new CommandHandler(config.prefix);
 
-    Commands(){
+    @Autowired
+    private MessageService bundle;
+
+    public Commands(){
         handler.register("help", bundle.get("commands.help.description"), args -> {
             StringBuilder common = new StringBuilder();
             Cons2<Command, StringBuilder> append = (command, builder) -> {

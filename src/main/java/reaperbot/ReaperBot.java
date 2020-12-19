@@ -88,7 +88,6 @@ public class ReaperBot{
         schemeDir.mkdirs();
         mapDir.mkdirs();
 
-        bundle = I18NBundle.createBundle(new Fi("bundle", classpath), Locale.ROOT, "Windows-1251");
         contentHandler = new ContentHandler();
         listener = new Listener();
         commands = new Commands();

@@ -15,10 +15,12 @@ import discord4j.core.spec.EmbedCreateSpec;
 import discord4j.rest.util.Color;
 import mindustry.net.Host;
 import org.reactivestreams.Publisher;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 import reactor.core.publisher.Mono;
 import reactor.core.scheduler.Schedulers;
+import reaperbot.service.MessageService;
 
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
@@ -45,10 +47,12 @@ public class Listener extends ReactiveEventAdapter{
     ObjectMap<Snowflake, boolean[]> temp = new ObjectMap<>();
     Seq<Snowflake> roleMessages;
 
+    @Autowired
+    private MessageService bundle;
+
     public Listener(){
         Core.net = new arc.Net();
         roleMessages = Seq.with(config.listenedMessages);
-        Log.info("Loaded ids: @", roleMessages);
         lateInitialize();
     }
 
