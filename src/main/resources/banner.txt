@@ -3,4 +3,4 @@ ${AnsiColor.BRIGHT_MAGENTA} |  _ \ _   _ ___ ___ _   _ ${AnsiColor.CYAN}/ ___|__
 ${AnsiColor.BRIGHT_MAGENTA} | |_) | | | / __/ __| | | |${AnsiColor.CYAN} |   / _` | __|${AnsiColor.BRIGHT_MAGENTA} (_)\ \
 ${AnsiColor.BRIGHT_MAGENTA} |  __/| |_| \__ \__ \ |_| |${AnsiColor.CYAN} |__| (_| | |_ ${AnsiColor.BRIGHT_MAGENTA}  _ / /
 ${AnsiColor.BRIGHT_MAGENTA} |_|    \__,_|___/___/\__, |${AnsiColor.CYAN}\____\__,_|\__|${AnsiColor.BRIGHT_MAGENTA} (_)_/
-${AnsiColor.BRIGHT_MAGENTA}                      |___/
+${AnsiColor.BRIGHT_MAGENTA}                      |___/ ${AnsiStyle.NORMAL}
