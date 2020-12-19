@@ -31,7 +31,7 @@ import java.io.*;
 import java.util.zip.InflaterInputStream;
 
 import static mindustry.Vars.*;
-import static reaperbot.ReaperBot.net;
+import static reaperbot.Constants.net;
 
 public class ContentHandler{
     Color co = new Color();

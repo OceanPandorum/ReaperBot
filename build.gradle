@@ -1,9 +1,13 @@
-apply plugin: 'java'
+plugins {
+    id 'org.springframework.boot' version '2.4.1'
+    id 'io.spring.dependency-management' version '1.0.10.RELEASE'
+    id 'java'
+}
 
 repositories{
     mavenCentral()
     jcenter()
-    maven{url 'https://www.jitpack.io'}
+    maven { url 'https://www.jitpack.io' }
 }
 
 ext{
@@ -14,18 +18,21 @@ ext{
 project.ext.mainClassName = "reaperbot.ReaperBot"
 
 dependencies{
-    implementation "org.hjson:hjson:3.0.0"
     implementation "com.discord4j:discord4j-core:$d4jVersion"
     implementation "com.github.Anuken.Arc:arc-core:$mindustryVersion"
     implementation "com.github.Anuken.Mindustry:core:$mindustryVersion"
+    implementation "com.google.code.gson:gson:2.8.6"
+
+    implementation "org.springframework.boot:spring-boot-starter-data-r2dbc"
+    implementation "org.springframework.boot:spring-boot-starter-webflux"
+
+    runtimeOnly "io.r2dbc:r2dbc-postgresql"
+    runtimeOnly "org.postgresql:postgresql"
 }
 
-task dist(type: Jar){
-    from files(sourceSets.main.output.classesDirs)
-    from files(sourceSets.main.output.resourcesDir)
-    from{configurations.runtimeClasspath.collect{it.isDirectory() ? it : zipTree(it)}}
-
+jar{
     archiveFileName = "${project.name}.jar"
+    from{configurations.runtimeClasspath.collect{it.isDirectory() ? it : zipTree(it)}}
 
     manifest{attributes 'Main-Class': project.mainClassName}
 }

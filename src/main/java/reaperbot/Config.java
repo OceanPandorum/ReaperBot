@@ -1,41 +1,37 @@
 package reaperbot;
 
-import arc.struct.Seq;
-import org.hjson.*;
+import discord4j.common.util.Snowflake;
 
-import static reaperbot.ReaperBot.configFile;
+import java.util.*;
+
+import static reaperbot.Constants.*;
 
 public class Config{
 
-    // TODO надо сериализовать
-    public Seq<String> getArray(String name){
-        try{
-            JsonArray array = JsonValue.readJSON(configFile.readString()).asObject().get(name).asArray();
-            Seq<String> strings = new Seq<>();
-            array.values().stream().map(JsonValue::asString).forEach(strings::add);
-            return strings;
-        }catch(Exception e){
-            return new Seq<>();
-        }
-    }
+    public Snowflake
+    serverChannelId = Snowflake.of(746000026269909002L),
+    serverMessageId = Snowflake.of(747117737268215882L),
+    commandChannelId = Snowflake.of(744874986073751584L),
+    mapsChannelId = Snowflake.of(744906782370955274L),
+    schematicsChannelId = Snowflake.of(744906867183976569L);
 
-    public JsonArray getJArray(String name){
-        try{
-            return JsonValue.readJSON(configFile.readString()).asObject().get(name).asArray();
-        }catch(Exception e){
-            return new JsonArray();
-        }
-    }
+    public Snowflake
+    adminRoleId = Snowflake.of(747906993259282565L),
+    memberRoleId = Snowflake.of(747908856604262469L);
 
-    public void save(String key, JsonValue value){
-        try{
-            JsonValue.readJSON(configFile.readString()).asObject().add(key, value).writeTo(configFile.writer(false), Stringify.FORMATTED);
-        }catch(Exception e){
-            throw new RuntimeException(e);
-        }
-    }
+    public Snowflake guildId = Snowflake.of(744814929701240882L);
 
-    public String get(String name){
-        return JsonValue.readJSON(configFile.readString()).asObject().getString(name, "");
+    public String token;
+
+    public String prefix = "$";
+
+    public Set<Snowflake> listenedMessages = Collections.emptySet();
+
+    public Set<String> servers = Collections.emptySet();
+
+    public List<InfoEmbed> info = Collections.emptyList();
+
+    public void update(){
+        configFile.writeString(gson.toJson(this));
     }
 }

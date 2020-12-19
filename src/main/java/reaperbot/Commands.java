@@ -12,27 +12,25 @@ import discord4j.core.spec.EmbedCreateSpec;
 import discord4j.rest.util.Permission;
 import mindustry.Vars;
 import mindustry.game.*;
-import org.reactivestreams.Publisher;
 import reactor.core.publisher.Mono;
 
 import javax.imageio.ImageIO;
 import java.awt.image.BufferedImage;
-import java.io.*;
 import java.lang.management.*;
 import java.util.*;
 import java.util.function.Consumer;
 
 import static reaperbot.ContentHandler.Map;
-import static reaperbot.ReaperBot.*;
+import static reaperbot.Constants.*;
 
 public class Commands{
-    private final CommandHandler handler = new CommandHandler(prefix), adminHandler = new CommandHandler(prefix);
+    private final CommandHandler handler = new CommandHandler(config.prefix), adminHandler = new CommandHandler(config.prefix);
 
     Commands(){
         handler.register("help", bundle.get("commands.help.description"), args -> {
             StringBuilder common = new StringBuilder();
             Cons2<Command, StringBuilder> append = (command, builder) -> {
-                builder.append(prefix);
+                builder.append(config.prefix);
                 builder.append("**");
                 builder.append(command.text);
                 builder.append("**");
@@ -73,7 +71,7 @@ public class Commands{
             builder.append(bundle.format("commands.status.memory", mem)).append('\n');
             builder.append(bundle.format("commands.status.uptime", Strings.formatMillis(rb.getUptime()))).append('\n');
             builder.append(bundle.format("commands.status.swears-count", listener.swears.length)).append('\n');
-            builder.append(bundle.format("commands.status.schem-dir-size", schemDir.findAll(f -> f.extension().equals(Vars.schematicExtension)).size)).append('\n');
+            builder.append(bundle.format("commands.status.schem-dir-size", schemeDir.findAll(f -> f.extension().equals(Vars.schematicExtension)).size)).append('\n');
             builder.append(bundle.format("commands.status.map-dir-size", mapDir.findAll(f -> f.extension().equals(Vars.mapExtension)).size));
 
             listener.info(bundle.get("commands.status.title"), builder.toString());
@@ -129,9 +127,10 @@ public class Commands{
                     if(map.description != null) e.setFooter(map.description, null);
                 };
 
-                listener.guild.getChannelById(mapsChannelID)
+                listener.guild.getChannelById(config.mapsChannelId)
                               .cast(TextChannel.class)
-                              .flatMap(c -> c.createMessage(m -> m.addFile(image.name(), image.read()).setEmbed(embed).addFile(mapFile.name(), mapFile.read())))
+                              .flatMap(c -> c.createMessage(m -> m.addFile(image.name(), image.read()).setEmbed(embed)
+                                                                  .addFile(mapFile.name(), mapFile.read())))
                               .block();
 
                 listener.text(bundle.get("commands.postmap.successful"));
@@ -144,7 +143,7 @@ public class Commands{
 
         handler.register("postschem", "[schem]", bundle.get("commands.postschem.description"), args -> {
             Message message = listener.lastMessage;
-            Member member = message.getAuthorAsMember().block();
+            Member member = message.getAuthorAsMember().blockOptional().orElseThrow();
 
             try{
                 Schematic schem = message.getAttachments().size() == 1
@@ -157,8 +156,8 @@ public class Commands{
 
                 BufferedImage preview = contentHandler.previewSchematic(schem);
 
-                Fi previewFile = schemDir.child("img_" + UUID.randomUUID().toString() + ".png");
-                Fi schemFile = schemDir.child(schem.name() + "." + Vars.schematicExtension);
+                Fi previewFile = schemeDir.child("img_" + UUID.randomUUID().toString() + ".png");
+                Fi schemFile = schemeDir.child(schem.name() + "." + Vars.schematicExtension);
                 Schematics.write(schem, schemFile);
                 ImageIO.write(preview, "png", previewFile.file());
 
@@ -173,13 +172,13 @@ public class Commands{
                                 .filter(emoji -> emoji.getName().equalsIgnoreCase(stack.item.name.replace("-", "")))
                                 .blockFirst();
 
-                        field.append(result.asFormat()).append(stack.amount).append("  ");
+                        field.append(Objects.requireNonNull(result).asFormat()).append(stack.amount).append("  ");
                     });
                     e.setTitle(schem.name());
                     e.setDescription(field.toString());
                 };
 
-                listener.guild.getChannelById(schematicsChannelID)
+                listener.guild.getChannelById(config.schematicsChannelId)
                               .cast(TextChannel.class)
                               .flatMap(c -> c.createMessage(m -> m.addFile(previewFile.name(), previewFile.read())
                                                                   .setEmbed(embed).addFile(schemFile.name(), schemFile.read())))
@@ -206,9 +205,9 @@ public class Commands{
             }
         }
 
-        if(!commandChannelID.equals(channel.getId()) && !isAdmin(member)) return Mono.empty();
+        if(!Objects.equals(config.commandChannelId, channel.getId()) && !isAdmin(member)) return Mono.empty();
 
-        if(text.startsWith(prefix)){
+        if(text.startsWith(config.prefix)){
             listener.channel = channel;
             listener.lastMember = member;
             listener.lastMessage = message;
@@ -223,7 +222,7 @@ public class Commands{
     public boolean isAdmin(Member member){
         if(member == null) return false;
         boolean admin = member.getRoles()
-                              .any(r -> adminRoleId.equals(r.getId()) || r.getPermissions().contains(Permission.ADMINISTRATOR))
+                              .any(r -> config.adminRoleId.equals(r.getId()) || r.getPermissions().contains(Permission.ADMINISTRATOR))
                               .blockOptional().orElse(false);
 
         return ownerId.equals(member.getId()) || admin;
@@ -240,7 +239,7 @@ public class Commands{
     boolean handleResponse(CommandResponse response, boolean logUnknown){
         if(response.type == ResponseType.unknownCommand){
             if(logUnknown){
-                listener.err(bundle.format("commands.response.unknown", prefix));
+                listener.err(bundle.format("commands.response.unknown", config.prefix));
                 listener.deleteMessages();
             }
             return false;
@@ -248,11 +247,11 @@ public class Commands{
             if(response.command.params.length == 0){
                 listener.err(bundle.get("commands.response.incorrect-arguments"),
                              bundle.format("commands.response.incorrect-argument",
-                                           prefix, response.command.text));
+                                           config.prefix, response.command.text));
             }else{
                 listener.err(bundle.get("commands.response.incorrect-arguments"),
                              bundle.format("commands.response.incorrect-arguments.text",
-                                           prefix, response.command.text, response.command.paramText));
+                                           config.prefix, response.command.text, response.command.paramText));
             }
             listener.deleteMessages();
             return false;

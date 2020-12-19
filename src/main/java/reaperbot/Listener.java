@@ -6,17 +6,19 @@ import arc.func.Func;
 import arc.struct.*;
 import arc.util.*;
 import discord4j.common.util.Snowflake;
-import discord4j.core.GatewayDiscordClient;
 import discord4j.core.event.ReactiveEventAdapter;
 import discord4j.core.event.domain.message.*;
 import discord4j.core.object.entity.*;
 import discord4j.core.object.entity.channel.*;
+import discord4j.core.object.entity.channel.Channel.Type;
 import discord4j.core.spec.EmbedCreateSpec;
 import discord4j.rest.util.Color;
 import mindustry.net.Host;
-import org.hjson.*;
 import org.reactivestreams.Publisher;
+import org.springframework.scheduling.annotation.Scheduled;
+import org.springframework.stereotype.Component;
 import reactor.core.publisher.Mono;
+import reactor.core.scheduler.Schedulers;
 
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
@@ -25,8 +27,9 @@ import java.util.concurrent.*;
 import java.util.function.Consumer;
 
 import static arc.Files.FileType.classpath;
-import static reaperbot.ReaperBot.*;
+import static reaperbot.Constants.*;
 
+@Component
 public class Listener extends ReactiveEventAdapter{
     private boolean[] all;
 
@@ -43,57 +46,53 @@ public class Listener extends ReactiveEventAdapter{
     Seq<Snowflake> roleMessages;
 
     public Listener(){
-        try{
-            Core.net = new arc.Net();
-            roleMessages = config.getArray("ids").map(Snowflake::of);
-            Log.info("Loaded ids: @", roleMessages);
-            lateInitialize();
-            Func<String, String> replace = s -> s.replace("\\", "\\\\").replace("_", "\\_")
-                                                 .replace("*", "\\*").replace("`", "\\`");
-
-            service.scheduleAtFixedRate(() -> {
-                List<Host> results = new CopyOnWriteArrayList<>();
-
-                config.getArray("servers").forEach(server -> net.pingServer(server, results::add));
-
-                net.run(Net.timeout, () -> {
-                    results.sort((a, b) -> a.name != null && b.name == null ? 1
-                    : a.name == null && b.name != null ? -1 : Integer.compare(a.players, b.players));
-
-                    Consumer<EmbedCreateSpec> embed = e -> {
-                        e.setColor(normalColor);
-                        results.stream().filter(h -> h.name != null).forEach(result -> {
-                            e.addField(result.address, Strings.format("*@*\n@: @\n@: @\n@: @\n@: @\n@: @\n_\n_\n",
-                                replace.get(result.name),
-                                bundle.get("listener.players"),
-                                (result.playerLimit > 0 ? result.players + "/" + result.playerLimit : result.players),
-                                bundle.get("listener.map"),
-                                replace.get(result.mapname).replaceAll("\\[.*?\\]", ""),
-                                bundle.get("listener.wave"),
-                                result.wave,
-                                bundle.get("listener.version"),
-                                result.version,
-                                bundle.get("listener.mode"),
-                                Strings.capitalize(result.mode.name())), false);
-                        });
-                        e.setFooter(bundle.format("listener.servers.last-update",
-                        DateTimeFormatter.ofPattern("dd MMM yyyy HH:mm:ss ZZZZ").format(ZonedDateTime.now())), null);
-                    };
-
-                    guild.getChannelById(serverChannelID)
-                         .cast(TextChannel.class)
-                         .flatMap(c -> c.getMessageById(Snowflake.of(747117737268215882L))
-                                        .flatMap(m -> m.edit(e -> e.setEmbed(embed))))
-                         .block();
-                });
-            }, 5, 30, TimeUnit.SECONDS);
-
-            Log.info("Common listener loaded.");
-        }catch(Exception e){
-            throw new RuntimeException(e);
-        }
+        Core.net = new arc.Net();
+        roleMessages = Seq.with(config.listenedMessages);
+        Log.info("Loaded ids: @", roleMessages);
+        lateInitialize();
     }
 
+    @Scheduled(cron = "*/30 * * * * *") // каждые 30 секунд
+    public void serviceStatus(){
+        Func<String, String> replace = s -> s.replace("\\", "\\\\").replace("_", "\\_")
+                                             .replace("*", "\\*").replace("`", "\\`");
+        List<Host> results = new CopyOnWriteArrayList<>();
+
+        config.servers.forEach(server -> net.pingServer(server, results::add));
+
+        Schedulers.boundedElastic().schedule(() -> {
+            results.sort((a, b) -> a.name != null && b.name == null
+            ? 1 : a.name == null && b.name != null ? -1 : Integer.compare(a.players, b.players));
+
+            Consumer<EmbedCreateSpec> embed = e -> {
+                e.setColor(normalColor);
+                results.stream().filter(h -> h.name != null).forEach(result -> {
+                    e.addField(result.address, Strings.format("*@*\n@: @\n@: @\n@: @\n@: @\n@: @\n_\n_\n",
+                        replace.get(result.name),
+                        bundle.get("listener.players"),
+                        (result.playerLimit > 0 ? result.players + "/" + result.playerLimit : result.players),
+                        bundle.get("listener.map"),
+                        replace.get(result.mapname).replaceAll("\\[.*?\\]", ""),
+                        bundle.get("listener.wave"),
+                        result.wave,
+                        bundle.get("listener.version"),
+                        result.version,
+                        bundle.get("listener.mode"),
+                        Strings.capitalize(result.mode.name())
+                    ), false);
+                });
+                e.setFooter(bundle.format("listener.servers.last-update",
+                                          DateTimeFormatter.ofPattern("dd MMM yyyy HH:mm:ss ZZZZ").format(ZonedDateTime.now())), null);
+            };
+
+            guild.getChannelById(config.serverChannelId)
+                 .cast(TextChannel.class)
+                 .flatMap(c -> c.getMessageById(config.serverMessageId).flatMap(m -> m.edit(e -> e.setEmbed(embed))))
+                 .block();
+        }, 2, TimeUnit.SECONDS);
+    }
+
+    //todo????
     protected void lateInitialize(){
         all = new boolean[roleMessages.size];
         Arrays.fill(all, true);
@@ -101,44 +100,38 @@ public class Listener extends ReactiveEventAdapter{
                 .readString("UTF-8")
                 .replaceAll("\n", "")
                 .split(", ");
+        config.update();
     }
 
-    public void sendInfo(){
+    public void sendInfo(int index){
         try{
-            roleMessages = config.getArray("ids").map(Snowflake::of);
-            for(JsonValue v : config.getJArray("info")){
-                if(!v.asObject().getBoolean("ignore", true)){
-                    String title = v.asObject().get("title").asString();
-                    String description = v.asObject().get("description").asString();
-                    Snowflake channelId = Snowflake.of(v.asObject().get("channel-id").asString());
-                    boolean listen = v.asObject().getBoolean("listen", false);
+            roleMessages = Seq.with(config.listenedMessages);
+            InfoEmbed i = config.info.get(index + 1);
+            if(i == null){
+                Log.err("Info embed with index '@' not found", index);
+                return;
+            }
 
-                    Snowflake messageId = guild.getChannelById(channelId)
-                            .cast(TextChannel.class)
-                            .flatMap(c -> c.createEmbed(e -> e.setTitle(title).setColor(normalColor).setDescription(description)))
-                            .map(Message::getId)
-                            .block();
+            Snowflake messageId = guild.getChannelById(i.channelId)
+                    .cast(TextChannel.class)
+                    .flatMap(c -> c.createEmbed(e -> e.setColor(normalColor).setTitle(i.title).setDescription(i.description)))
+                    .map(Message::getId)
+                    .block();
 
-                    if(listen){
-                        roleMessages.add(messageId);
-                    }
-                }
+            if(i.listenable && messageId != null){
+                config.listenedMessages.add(messageId);
             }
             lateInitialize();
         }catch(Throwable t){
             throw new RuntimeException(t);
         }
-        Log.info("All embeds sent. Added: @", roleMessages);
-        JsonArray array = new JsonArray();
-        roleMessages.map(Snowflake::asString).forEach(array::add);
-        config.save("ids", array);
     }
 
     @Override
     public Publisher<?> onMessageCreate(MessageCreateEvent event){
         Message message = event.getMessage();
         return message.getChannel().map(Channel::getType)
-                      .filter(t -> t == Channel.Type.GUILD_TEXT && !message.getAuthor().map(User::isBot).orElse(true))
+                      .filter(t -> t == Type.GUILD_TEXT && !message.getAuthor().map(User::isBot).orElse(true))
                       .flatMap(m -> commands.handle(event));
     }
 
@@ -155,7 +148,7 @@ public class Listener extends ReactiveEventAdapter{
             Snowflake userId = event.getUserId();
             temp.put(userId, b);
             if(Arrays.equals(b, all)){
-                return member.addRole(memberRoleId).then(Mono.fromRunnable(() -> temp.remove(userId)));
+                return member.addRole(config.memberRoleId).then(Mono.fromRunnable(() -> temp.remove(userId)));
             }
         }
 
@@ -165,12 +158,12 @@ public class Listener extends ReactiveEventAdapter{
     public void deleteMessages(){
         Message last = lastMessage, lastSent = lastSentMessage;
 
-        net.run(20000, () -> {
+        Schedulers.boundedElastic().schedule(() -> {
             if(last != null && lastMessage != null){
                 last.delete().block();
                 lastSent.delete().block();
             }
-        });
+        }, 20, TimeUnit.SECONDS);
     }
 
     public void embed(Consumer<EmbedCreateSpec> embed){
