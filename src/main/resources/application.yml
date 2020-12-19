@@ -1,0 +1,11 @@
+spring:
+  r2dbc:
+    url:
+    password:
+    username:
+  task:
+    scheduling:
+      pool:
+        size: 3
+server:
+  port:
