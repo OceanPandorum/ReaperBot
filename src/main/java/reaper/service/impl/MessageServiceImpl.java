@@ -1,9 +1,9 @@
-package reaperbot.service.impl;
+package reaper.service.impl;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationContext;
 import org.springframework.stereotype.Service;
-import reaperbot.service.MessageService;
+import reaper.service.MessageService;
 
 import java.util.Locale;
 

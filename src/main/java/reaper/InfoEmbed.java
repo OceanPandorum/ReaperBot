@@ -1,4 +1,4 @@
-package reaperbot;
+package reaper;
 
 import discord4j.common.util.Snowflake;
 

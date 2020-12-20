@@ -1,10 +1,10 @@
-package reaperbot;
+package reaper;
 
 import discord4j.common.util.Snowflake;
 
 import java.util.*;
 
-import static reaperbot.Constants.*;
+import static reaper.Constants.*;
 
 public class Config{
 

@@ -1,4 +1,4 @@
-package reaperbot;
+package reaper;
 
 import arc.func.Cons;
 import arc.util.*;

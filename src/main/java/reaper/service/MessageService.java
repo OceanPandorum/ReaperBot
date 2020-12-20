@@ -1,4 +1,4 @@
-package reaperbot.service;
+package reaper.service;
 
 public interface MessageService{
 

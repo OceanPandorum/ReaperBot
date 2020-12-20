@@ -1,4 +1,4 @@
-package reaperbot;
+package reaper;
 
 public enum AdminActionType{
     ban

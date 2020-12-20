@@ -1,4 +1,4 @@
-package reaperbot;
+package reaper;
 
 import arc.Core;
 import arc.files.Fi;
@@ -6,12 +6,18 @@ import arc.func.Func;
 import arc.struct.*;
 import arc.util.*;
 import discord4j.common.util.Snowflake;
+import discord4j.core.*;
 import discord4j.core.event.ReactiveEventAdapter;
 import discord4j.core.event.domain.message.*;
 import discord4j.core.object.entity.*;
 import discord4j.core.object.entity.channel.*;
 import discord4j.core.object.entity.channel.Channel.Type;
+import discord4j.core.object.presence.Presence;
 import discord4j.core.spec.EmbedCreateSpec;
+import discord4j.discordjson.json.*;
+import discord4j.discordjson.json.gateway.StatusUpdate;
+import discord4j.gateway.intent.*;
+import discord4j.rest.response.ResponseFunction;
 import discord4j.rest.util.Color;
 import mindustry.net.Host;
 import org.reactivestreams.Publisher;
@@ -20,8 +26,9 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 import reactor.core.publisher.Mono;
 import reactor.core.scheduler.Schedulers;
-import reaperbot.service.MessageService;
+import reaper.service.MessageService;
 
+import javax.annotation.*;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
@@ -29,12 +36,13 @@ import java.util.concurrent.*;
 import java.util.function.Consumer;
 
 import static arc.Files.FileType.classpath;
-import static reaperbot.Constants.*;
+import static reaper.Constants.*;
 
 @Component
 public class Listener extends ReactiveEventAdapter{
     private boolean[] all;
 
+    protected GatewayDiscordClient gateway;
     protected Guild guild;
     protected TextChannel channel;
     protected Member lastMember;
@@ -47,13 +55,47 @@ public class Listener extends ReactiveEventAdapter{
     ObjectMap<Snowflake, boolean[]> temp = new ObjectMap<>();
     Seq<Snowflake> roleMessages;
 
-    @Autowired
     private MessageService bundle;
 
-    public Listener(){
+    private Commands commands;
+
+    @Autowired
+    public void init(Commands commands, MessageService bundle){
+        this.commands = commands;
+        this.bundle = bundle;
+
+        listener = this;
+
         Core.net = new arc.Net();
         roleMessages = Seq.with(config.listenedMessages);
         lateInitialize();
+
+        gateway = DiscordClientBuilder
+                .create(Objects.requireNonNull(config.token, "Token must be not null!"))
+                .onClientResponse(ResponseFunction.emptyIfNotFound())
+                .build()
+                .gateway()
+                .setEnabledIntents(IntentSet.of(
+                        Intent.GUILD_MESSAGES,
+                        Intent.GUILD_MESSAGE_REACTIONS
+                ))
+                .login().block();
+
+        gateway.on(listener).subscribeOn(Schedulers.boundedElastic()).subscribe();
+
+        gateway.updatePresence(Presence.idle(ActivityUpdateRequest.builder().type(0).name(bundle.get("listener.status")).build())).block();
+
+        guild = gateway.getGuildById(config.guildId).block();
+
+        ownerId = gateway.rest().getApplicationInfo()
+                         .map(ApplicationInfoData::owner)
+                         .map(o -> Snowflake.of(o.id()))
+                         .block();
+    }
+
+    @PreDestroy
+    public void destroy(){
+        gateway.logout().block();
     }
 
     @Scheduled(cron = "*/30 * * * * *") // каждые 30 секунд
@@ -90,9 +132,9 @@ public class Listener extends ReactiveEventAdapter{
             };
 
             guild.getChannelById(config.serverChannelId)
-                 .cast(TextChannel.class)
-                 .flatMap(c -> c.getMessageById(config.serverMessageId).flatMap(m -> m.edit(e -> e.setEmbed(embed))))
-                 .block();
+                    .cast(TextChannel.class)
+                    .flatMap(c -> c.getMessageById(config.serverMessageId).flatMap(m -> m.edit(e -> e.setEmbed(embed))))
+                    .block();
         }, 2, TimeUnit.SECONDS);
     }
 
@@ -134,7 +176,8 @@ public class Listener extends ReactiveEventAdapter{
     @Override
     public Publisher<?> onMessageCreate(MessageCreateEvent event){
         Message message = event.getMessage();
-        return message.getChannel().map(Channel::getType)
+        return message.getChannel()
+                      .map(Channel::getType)
                       .filter(t -> t == Type.GUILD_TEXT && !message.getAuthor().map(User::isBot).orElse(true))
                       .flatMap(m -> commands.handle(event));
     }

@@ -1,12 +1,12 @@
-package reaperbot.controller;
+package reaper.controller;
 
 import org.slf4j.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 import reactor.core.publisher.*;
-import reaperbot.*;
-import reaperbot.entity.AdminAction;
-import reaperbot.repository.AdminActionRepository;
+import reaper.*;
+import reaper.entity.AdminAction;
+import reaper.repository.AdminActionRepository;
 
 @RestController
 @RequestMapping("/")

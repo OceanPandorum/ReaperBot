@@ -1,4 +1,4 @@
-package reaperbot;
+package reaper;
 
 import arc.files.Fi;
 import arc.func.Cons2;
@@ -15,7 +15,8 @@ import mindustry.game.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import reactor.core.publisher.Mono;
-import reaperbot.service.MessageService;
+import reactor.core.scheduler.Schedulers;
+import reaper.service.MessageService;
 
 import javax.imageio.ImageIO;
 import java.awt.image.BufferedImage;
@@ -23,17 +24,18 @@ import java.lang.management.*;
 import java.util.*;
 import java.util.function.Consumer;
 
-import static reaperbot.ContentHandler.Map;
-import static reaperbot.Constants.*;
+import static reaper.ContentHandler.Map;
+import static reaper.Constants.*;
 
 @Component
 public class Commands{
     private final CommandHandler handler = new CommandHandler(config.prefix), adminHandler = new CommandHandler(config.prefix);
 
-    @Autowired
-    private MessageService bundle;
+    private final MessageService bundle;
 
-    public Commands(){
+    public Commands(@Autowired MessageService bundle){
+        this.bundle = bundle;
+
         handler.register("help", bundle.get("commands.help.description"), args -> {
             StringBuilder common = new StringBuilder();
             Cons2<Command, StringBuilder> append = (command, builder) -> {
@@ -135,9 +137,10 @@ public class Commands{
                 };
 
                 listener.guild.getChannelById(config.mapsChannelId)
+                              .publishOn(Schedulers.boundedElastic())
                               .cast(TextChannel.class)
                               .flatMap(c -> c.createMessage(m -> m.addFile(image.name(), image.read()).setEmbed(embed)
-                                                                  .addFile(mapFile.name(), mapFile.read())))
+                                    .addFile(mapFile.name(), mapFile.read())))
                               .block();
 
                 listener.text(bundle.get("commands.postmap.successful"));
@@ -188,7 +191,7 @@ public class Commands{
                 listener.guild.getChannelById(config.schematicsChannelId)
                               .cast(TextChannel.class)
                               .flatMap(c -> c.createMessage(m -> m.addFile(previewFile.name(), previewFile.read())
-                                                                  .setEmbed(embed).addFile(schemFile.name(), schemFile.read())))
+                                    .setEmbed(embed).addFile(schemFile.name(), schemFile.read())))
                               .block();
 
                 message.delete().block();
@@ -206,9 +209,9 @@ public class Commands{
         Member member = event.getMember().orElseThrow(RuntimeException::new);
         String text = message.getContent();
 
-        if(!commands.isAdmin(member)){
+        if(!isAdmin(member)){
             if(Structs.contains(listener.swears, text::equalsIgnoreCase)){
-                return Mono.fromRunnable(() -> message.delete().block());
+                return message.delete();
             }
         }
 

@@ -1,9 +1,9 @@
-package reaperbot.entity;
+package reaper.entity;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.relational.core.mapping.*;
-import reaperbot.AdminActionType;
+import reaper.AdminActionType;
 
 import java.time.Instant;
 import java.util.*;

@@ -1,4 +1,4 @@
-package reaperbot;
+package reaper;
 
 import com.google.gson.*;
 import discord4j.common.util.Snowflake;

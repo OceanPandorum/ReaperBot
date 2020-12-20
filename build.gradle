@@ -16,6 +16,8 @@ ext{
     gsonVersion      = '2.8.6'
 }
 
+project.ext.mainClassName = 'reaper.ReaperBot'
+
 dependencies{
     implementation "com.discord4j:discord4j-core:$d4jVersion"
     implementation "com.github.Anuken.Arc:arc-core:$mindustryVersion"
@@ -28,11 +30,3 @@ dependencies{
     runtimeOnly "io.r2dbc:r2dbc-postgresql"
     runtimeOnly "org.postgresql:postgresql"
 }
-
-jar{
-    archiveFileName = "${project.name}.jar"
-    from{configurations.runtimeClasspath.collect{it.isDirectory() ? it : zipTree(it)}}
-
-    manifest{attributes 'Main-Class': 'reaperbot.ReaperBot'}
-}
-

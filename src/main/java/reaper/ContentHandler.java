@@ -1,4 +1,4 @@
-package reaperbot;
+package reaper;
 
 import arc.Core;
 import arc.files.Fi;
@@ -13,7 +13,6 @@ import arc.math.Mathf;
 import arc.struct.*;
 import arc.util.io.CounterInputStream;
 import arc.util.serialization.Base64Coder;
-import mindustry.Vars;
 import mindustry.content.Blocks;
 import mindustry.core.*;
 import mindustry.ctype.*;
@@ -31,7 +30,7 @@ import java.io.*;
 import java.util.zip.InflaterInputStream;
 
 import static mindustry.Vars.*;
-import static reaperbot.Constants.net;
+import static reaper.Constants.net;
 
 public class ContentHandler{
     Color co = new Color();
@@ -98,7 +97,7 @@ public class ContentHandler{
                 width *= 4;
                 height *= 4;
 
-                y = currentImage.getHeight() - (y + height/2f) - height/2f;
+                y = currentImage.getHeight() - (y + height / 2f) - height / 2f;
 
                 AffineTransform at = new AffineTransform();
                 at.translate(x, y);
