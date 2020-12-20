@@ -9,8 +9,12 @@ import org.springframework.context.MessageSource;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.support.ResourceBundleMessageSource;
 import org.springframework.scheduling.annotation.*;
+import org.springframework.web.server.WebFilter;
+import reactor.core.publisher.Mono;
 
 import javax.annotation.PostConstruct;
+import java.net.InetSocketAddress;
+import java.util.Objects;
 
 import static reaper.Constants.*;
 
@@ -18,6 +22,16 @@ import static reaper.Constants.*;
 @EnableScheduling
 @SpringBootApplication
 public class ReaperBot implements CommandLineRunner{
+
+    @Bean
+    public WebFilter webFilter(){
+        return (exchange, chain) -> {
+            InetSocketAddress address = exchange.getRequest().getRemoteAddress();
+            return Mono.justOrEmpty(address)
+                    .filter(a -> Objects.equals(a.getHostString(), config.developerIp) || a.getAddress().isAnyLocalAddress())
+                    .flatMap(__ -> chain.filter(exchange));
+        };
+    }
 
     @Bean
     public MessageSource messageSource(){

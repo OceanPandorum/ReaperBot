@@ -23,6 +23,8 @@ public class Config{
 
     public String token;
 
+    public String developerIp;
+
     public String prefix = "$";
 
     public Set<Snowflake> listenedMessages = Collections.emptySet();
