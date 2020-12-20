@@ -19,13 +19,23 @@ public class AdminActionController{
         this.repository = repository;
     }
 
-    @GetMapping("/bans/{type}/{targetId}")
+    @GetMapping("/actions/{type}")
+    public Flux<AdminAction> get(@PathVariable AdminActionType type){
+        return repository.findAllByType(type);
+    }
+
+    @GetMapping("/actions/{type}/{targetId}")
     public Flux<AdminAction> get(@PathVariable AdminActionType type, @PathVariable String targetId){
         return repository.findByTypeAndTargetId(type, targetId);
     }
 
-    @PostMapping("/bans")
+    @PostMapping("/actions")
     public Mono<AdminAction> add(@RequestBody AdminAction adminAction){
         return repository.save(adminAction);
+    }
+
+    @DeleteMapping("/actions/{type}/{targetId}")
+    public Mono<Void> add(@PathVariable AdminActionType type, @PathVariable String targetId){
+        return repository.deleteAllByTypeAndTargetId(type, targetId);
     }
 }
