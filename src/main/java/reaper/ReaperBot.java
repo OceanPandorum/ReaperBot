@@ -2,7 +2,7 @@ package reaper;
 
 import arc.files.Fi;
 import arc.struct.Seq;
-import arc.util.Strings;
+import arc.util.*;
 import org.springframework.boot.*;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.MessageSource;
@@ -13,7 +13,7 @@ import org.springframework.web.server.WebFilter;
 import reactor.core.publisher.Mono;
 
 import javax.annotation.PostConstruct;
-import java.net.InetSocketAddress;
+import java.net.*;
 import java.util.Objects;
 
 import static reaper.Constants.*;
@@ -25,12 +25,16 @@ public class ReaperBot implements CommandLineRunner{
 
     @Bean
     public WebFilter webFilter(){
-        return (exchange, chain) -> {
-            InetSocketAddress address = exchange.getRequest().getRemoteAddress();
-            return Mono.justOrEmpty(address)
-                    .filter(a -> Objects.equals(a.getHostString(), config.developerIp) || a.getAddress().isAnyLocalAddress())
-                    .flatMap(__ -> chain.filter(exchange));
-        };
+        return (exchange, chain) -> Mono.justOrEmpty(exchange.getRequest())
+                .filter(req -> {
+                    InetSocketAddress remote = req.getRemoteAddress();
+                    InetSocketAddress local = req.getLocalAddress();
+                    return remote != null && local != null &&
+                            (Objects.equals(remote.getHostString(), local.getHostString()) ||
+                            Objects.equals(remote.getHostString(), config.developerIp) ||
+                            remote.getAddress().isAnyLocalAddress());
+                })
+                .flatMap(__ -> chain.filter(exchange));
     }
 
     @Bean
