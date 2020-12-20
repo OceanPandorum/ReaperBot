@@ -31,11 +31,12 @@ public class AdminActionController{
 
     @PostMapping("/actions")
     public Mono<AdminAction> add(@RequestBody AdminAction adminAction){
-        return repository.save(adminAction);
+        Mono<AdminAction> action = repository.findByTypeAndTargetId(adminAction.type(), adminAction.targetId()).next();
+        return action.hasElement().flatMap(e -> e ? action.flatMap(a -> repository.save(a.plusEndTimestamp(adminAction.endTimestamp()))) : repository.save(adminAction));
     }
 
     @DeleteMapping("/actions/{type}/{targetId}")
-    public Mono<Void> add(@PathVariable AdminActionType type, @PathVariable String targetId){
+    public Mono<Void> delete(@PathVariable AdminActionType type, @PathVariable String targetId){
         return repository.deleteAllByTypeAndTargetId(type, targetId);
     }
 }

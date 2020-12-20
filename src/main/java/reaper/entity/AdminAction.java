@@ -5,7 +5,8 @@ import org.springframework.data.annotation.Id;
 import org.springframework.data.relational.core.mapping.*;
 import reaper.AdminActionType;
 
-import java.time.Instant;
+import java.time.*;
+import java.time.temporal.*;
 import java.util.*;
 
 @Table("admin_action")
@@ -89,6 +90,11 @@ public class AdminAction{
 
     public void endTimestamp(Instant endTimestamp){
         this.endTimestamp = endTimestamp;
+    }
+
+    public AdminAction plusEndTimestamp(Instant endTimestamp){
+        this.endTimestamp = endTimestamp.plusSeconds(endTimestamp.getEpochSecond() - this.endTimestamp.getEpochSecond());
+        return this;
     }
 
     @Override
