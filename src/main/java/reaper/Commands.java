@@ -194,7 +194,7 @@ public class Commands{
                                     .setEmbed(embed).addFile(schemFile.name(), schemFile.read())))
                               .block();
 
-                message.delete().block();
+                listener.text(bundle.get("commands.postmap.successful"));
             }catch(Exception e){
                 Log.err(e);
                 listener.err(bundle.get("commands.parsing-error"), Strings.neatError(e, true));
@@ -217,8 +217,8 @@ public class Commands{
 
         if(!Objects.equals(config.commandChannelId, channel.getId()) && !isAdmin(member)) return Mono.empty();
 
+        listener.channel = channel;
         if(text.startsWith(config.prefix)){
-            listener.channel = channel;
             listener.lastMember = member;
             listener.lastMessage = message;
         }

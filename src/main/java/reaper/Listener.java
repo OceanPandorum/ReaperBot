@@ -15,7 +15,6 @@ import discord4j.core.object.entity.channel.Channel.Type;
 import discord4j.core.object.presence.Presence;
 import discord4j.core.spec.EmbedCreateSpec;
 import discord4j.discordjson.json.*;
-import discord4j.discordjson.json.gateway.StatusUpdate;
 import discord4j.gateway.intent.*;
 import discord4j.rest.response.ResponseFunction;
 import discord4j.rest.util.Color;
@@ -28,7 +27,7 @@ import reactor.core.publisher.Mono;
 import reactor.core.scheduler.Schedulers;
 import reaper.service.MessageService;
 
-import javax.annotation.*;
+import javax.annotation.PreDestroy;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
