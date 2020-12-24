@@ -6,8 +6,7 @@ import arc.graphics.Color;
 import arc.graphics.*;
 import arc.graphics.Pixmap.Format;
 import arc.graphics.g2d.*;
-import arc.graphics.g2d.TextureAtlas.AtlasRegion;
-import arc.graphics.g2d.TextureAtlas.TextureAtlasData;
+import arc.graphics.g2d.TextureAtlas.*;
 import arc.graphics.g2d.TextureAtlas.TextureAtlasData.Page;
 import arc.math.Mathf;
 import arc.struct.*;
@@ -30,12 +29,12 @@ import java.io.*;
 import java.util.zip.InflaterInputStream;
 
 import static mindustry.Vars.*;
-import static reaper.Constants.net;
 
 public class ContentHandler{
-    Color co = new Color();
-    Graphics2D currentGraphics;
-    BufferedImage currentImage;
+    private final Color color = new Color();
+
+    private Graphics2D currentGraphics;
+    private BufferedImage currentImage;
 
     public ContentHandler(){
         Version.enabled = false;
@@ -79,13 +78,13 @@ public class ContentHandler{
                 Core.atlas.addRegion(region.name, region);
                 regions.put(region.name, image);
             }catch(Exception e){
-                e.printStackTrace();
+                throw new RuntimeException(e);
             }
         });
 
         Lines.useLegacyLine = true;
         Core.atlas.setErrorRegion("error");
-        Draw.scl = 1f / 4f;
+        Draw.scl = 0.25f;
         Core.batch = new SpriteBatch(0){
             @Override
             protected void draw(TextureRegion region, float x, float y, float originX, float originY, float width, float height, float rotation){
@@ -165,7 +164,7 @@ public class ContentHandler{
     }
 
     public Schematic parseSchematicURL(String text) throws Exception{
-        return Schematics.read(net.download(text));
+        return Schematics.read(Net.download(text));
     }
 
     public BufferedImage previewSchematic(Schematic schem) throws Exception{
@@ -293,7 +292,7 @@ public class ContentHandler{
     }
 
     int conv(int rgba){
-        return co.set(rgba).argb8888();
+        return color.set(rgba).argb8888();
     }
 
     public static class Map{
@@ -361,9 +360,9 @@ public class ContentHandler{
         }
     }
 
-    static class ImageRegion extends AtlasRegion{
-        final BufferedImage image;
-        final int x, y;
+    private static class ImageRegion extends AtlasRegion{
+        public final BufferedImage image;
+        public final int x, y;
 
         public ImageRegion(String name, Texture texture, int x, int y, BufferedImage image){
             super(texture, x, y, image.getWidth(), image.getHeight());

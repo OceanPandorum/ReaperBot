@@ -1,27 +1,22 @@
 package reaper;
 
-import arc.files.Fi;
-import arc.struct.Seq;
-import arc.util.*;
-import org.springframework.boot.*;
+import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.MessageSource;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.support.ResourceBundleMessageSource;
-import org.springframework.scheduling.annotation.*;
+import org.springframework.scheduling.annotation.EnableScheduling;
 import org.springframework.web.server.WebFilter;
 import reactor.core.publisher.Mono;
 
-import javax.annotation.PostConstruct;
-import java.net.*;
+import java.net.InetSocketAddress;
 import java.util.Objects;
 
-import static reaper.Constants.*;
+import static reaper.Constants.config;
 
-@EnableAsync
 @EnableScheduling
 @SpringBootApplication
-public class ReaperBot implements CommandLineRunner{
+public class ReaperBot{
 
     @Bean
     public WebFilter webFilter(){
@@ -47,34 +42,5 @@ public class ReaperBot implements CommandLineRunner{
 
     public static void main(String[] args){
         SpringApplication.run(ReaperBot.class, args);
-    }
-
-    @PostConstruct
-    public void init(){
-        configFile = Fi.get("prefs.json");
-        if(!configFile.exists()){
-            config = new Config();
-            configFile.writeString(gson.toJson(config));
-        }
-        config = gson.fromJson(configFile.reader(), Config.class);
-
-        cacheDir = new Fi("cache/");
-        schemeDir = cacheDir.child("schem/");
-        mapDir = cacheDir.child("map/");
-
-        // Создаём схем и мод папку, кеш папка тоже создаться
-        schemeDir.mkdirs();
-        mapDir.mkdirs();
-
-        contentHandler = new ContentHandler();
-        net = new Net();
-    }
-
-    @Override
-    public void run(String... args) throws Exception{
-        Seq<String> arr = Seq.with(args);
-        if(arr.any() && arr.get(0).equals("-info")){
-            listener.sendInfo(Strings.parseInt(arr.get(1)));
-        }
     }
 }

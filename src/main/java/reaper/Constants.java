@@ -14,8 +14,6 @@ public final class Constants{
     public static Fi mapDir;
 
     public static ContentHandler contentHandler;
-    public static Listener listener;
-    public static Net net;
     public static Config config;
 
     public static final Gson gson = new GsonBuilder()

@@ -1,6 +1,5 @@
 package reaper.service.impl;
 
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationContext;
 import org.springframework.stereotype.Service;
 import reaper.service.MessageService;
@@ -12,7 +11,7 @@ public class MessageServiceImpl implements MessageService{
 
     private final ApplicationContext applicationContext;
 
-    public MessageServiceImpl(@Autowired ApplicationContext applicationContext){
+    public MessageServiceImpl(ApplicationContext applicationContext){
         this.applicationContext = applicationContext;
     }
 
