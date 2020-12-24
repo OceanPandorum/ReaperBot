@@ -36,7 +36,7 @@ import javax.annotation.*;
 import javax.imageio.ImageIO;
 import java.awt.image.BufferedImage;
 import java.lang.management.*;
-import java.time.ZonedDateTime;
+import java.time.*;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.concurrent.*;
@@ -47,6 +47,8 @@ import static reaper.Constants.*;
 
 @Component
 public class Listener extends ReactiveEventAdapter implements CommandLineRunner{
+    private static final DateTimeFormatter statusFormatter = DateTimeFormatter.ofPattern("dd MMM yyyy HH:mm:ss ZZZZ");
+    private static final DateTimeFormatter fileFormatter = DateTimeFormatter.ofPattern("MM-dd-yyyy_HH-mm-ss");
     private static final ReactionEmoji success = ReactionEmoji.unicode("✅");
     private boolean[] all;
 
@@ -207,7 +209,7 @@ public class Listener extends ReactiveEventAdapter implements CommandLineRunner{
 
                 ContentHandler.Map map = contentHandler.readMap(Net.download(a.getUrl()));
                 Fi mapFile = mapDir.child(a.getFilename());
-                Fi image = mapDir.child("image_" + a.getFilename().replace(Vars.mapExtension, "png"));
+                Fi image = mapDir.child(String.format("img_%s_%s.png", a.getFilename().replace(Vars.mapExtension, ""), fileFormatter.format(LocalDateTime.now())));
                 Streams.copy(Net.download(a.getUrl()), mapFile.write());
                 ImageIO.write(map.image, "png", image.file());
 
@@ -248,7 +250,7 @@ public class Listener extends ReactiveEventAdapter implements CommandLineRunner{
 
                 BufferedImage preview = contentHandler.previewSchematic(schem);
 
-                Fi previewFile = schemeDir.child("img_" + UUID.randomUUID().toString() + ".png");
+                Fi previewFile = schemeDir.child(String.format("img_%s_%s.png", schem.name(), fileFormatter.format(LocalDateTime.now())));
                 Fi schemFile = schemeDir.child(schem.name() + "." + Vars.schematicExtension);
                 Schematics.write(schem, schemFile);
                 ImageIO.write(preview, "png", previewFile.file());
@@ -313,7 +315,7 @@ public class Listener extends ReactiveEventAdapter implements CommandLineRunner{
                     ), false);
                 });
                 spec.setDescription(bundle.format("listener.servers.all", results.stream().mapToInt(h -> h.players).sum()));
-                spec.setFooter(bundle.format("listener.servers.last-update", DateTimeFormatter.ofPattern("dd MMM yyyy HH:mm:ss ZZZZ").format(ZonedDateTime.now())), null);
+                spec.setFooter(bundle.format("listener.servers.last-update", statusFormatter.format(ZonedDateTime.now())), null);
             };
 
             guild.getChannelById(config.serverChannelId)
@@ -366,7 +368,7 @@ public class Listener extends ReactiveEventAdapter implements CommandLineRunner{
     @Override
     public Publisher<?> onMessageCreate(MessageCreateEvent event){
         return Mono.just(event.getMessage())
-                .filter(message -> !message.getAuthor().map(User::isBot).orElse(false))
+                .filter(message -> !message.getAuthor().map(User::isBot).orElse(true))
                 .filterWhen(message -> message.getChannel().map(c -> c.getType() == Type.GUILD_TEXT))
                 .flatMap(__ -> handle(event));
     }
