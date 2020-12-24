@@ -469,7 +469,8 @@ public class Listener extends ReactiveEventAdapter implements CommandLineRunner{
     }
 
     public Mono<Void> embed(Consumer<EmbedCreateSpec> embed){
-        return channel.createEmbed(embed).publishOn(Schedulers.boundedElastic())
+        return channel.createEmbed(embed)
+                .publishOn(Schedulers.boundedElastic())
                 .doOnNext(message -> lastSentMessage = message)
                 .then();
     }

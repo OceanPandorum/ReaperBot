@@ -2,12 +2,12 @@ package reaper;
 
 import arc.func.Cons;
 import arc.util.*;
+import io.netty.buffer.*;
 import mindustry.net.*;
 import reactor.core.scheduler.Schedulers;
 
 import java.io.InputStream;
 import java.net.*;
-import java.nio.ByteBuffer;
 import java.util.concurrent.TimeUnit;
 
 public abstract class Net{
@@ -44,8 +44,9 @@ public abstract class Net{
                 long start = Time.millis();
                 socket.receive(packet);
 
-                ByteBuffer buffer = ByteBuffer.wrap(packet.getData());
-                listener.get(NetworkIO.readServerData((int)Time.timeSinceMillis(start), ip, buffer));
+                ByteBuf buffer = Unpooled.wrappedBuffer(packet.getData());
+                listener.get(NetworkIO.readServerData((int)Time.timeSinceMillis(start), ip, buffer.nioBuffer()));
+                buffer.clear();
                 socket.disconnect();
             }catch(Exception e){
                 listener.get(new Host(0, null, ip, null, 0, 0,
