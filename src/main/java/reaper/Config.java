@@ -25,6 +25,8 @@ public class Config{
 
     public String developerIp;
 
+    public Snowflake developerId = Snowflake.of(564093651589005333L);
+
     public String prefix = "$";
 
     public Set<Snowflake> listenedMessages = Collections.emptySet();

@@ -5,6 +5,7 @@ import arc.files.Fi;
 import arc.func.*;
 import arc.struct.*;
 import arc.util.*;
+import arc.util.CommandHandler.CommandResponse;
 import arc.util.io.Streams;
 import discord4j.common.util.Snowflake;
 import discord4j.core.*;
@@ -48,8 +49,8 @@ import static reaper.Constants.*;
 @Component
 public class Listener extends ReactiveEventAdapter implements CommandLineRunner{
     private static final DateTimeFormatter statusFormatter = DateTimeFormatter.ofPattern("dd MMM yyyy HH:mm:ss ZZZZ");
-    private static final DateTimeFormatter fileFormatter = DateTimeFormatter.ofPattern("MM-dd-yyyy_HH-mm-ss");
     private static final ReactionEmoji success = ReactionEmoji.unicode("✅");
+    private static final ReactionEmoji failed = ReactionEmoji.unicode("❌");
     private boolean[] all;
 
     @Autowired
@@ -64,7 +65,7 @@ public class Listener extends ReactiveEventAdapter implements CommandLineRunner{
     private final ObjectMap<Snowflake, boolean[]> validation = new ObjectMap<>();
     private Seq<Snowflake> roleMessages;
 
-    private final CommandHandler handler, adminHandler;
+    private final CommandHandler handler;
 
     public final Color normalColor = Color.of(0xb9fca6), errorColor = Color.of(0xff3838);
 
@@ -86,8 +87,6 @@ public class Listener extends ReactiveEventAdapter implements CommandLineRunner{
         mapDir.mkdirs();
 
         handler = new CommandHandler(config.prefix);
-
-        adminHandler = new CommandHandler(config.prefix);
     }
 
     @PostConstruct
@@ -147,22 +146,10 @@ public class Listener extends ReactiveEventAdapter implements CommandLineRunner{
                 append.get(command, common);
             }
 
-            if(isAdmin(lastMember)){
-                StringBuilder admin = new StringBuilder();
-                for(CommandHandler.Command command : adminHandler.getCommandList()){
-                    append.get(command, admin);
-                }
-
-                embed(embed -> embed.setColor(normalColor)
-                                    .addField(bundle.get("commands.help.title"), common.toString(), false)
-                                    .addField(bundle.get("commands.help.admin.title"), admin.toString(), true))
-                        .subscribe();
-            }else{
-                info(bundle.get("commands.help.title"), common.toString()).subscribe();
-            }
+            info(bundle.get("commands.help.title"), common.toString()).subscribe();
         });
 
-        adminHandler.register("status", bundle.get("commands.status.description"), args -> {
+        handler.register("status", bundle.get("commands.status.description"), args -> {
             StringBuilder builder = new StringBuilder();
             RuntimeMXBean rb = ManagementFactory.getRuntimeMXBean();
 
@@ -174,25 +161,6 @@ public class Listener extends ReactiveEventAdapter implements CommandLineRunner{
             builder.append(bundle.format("commands.status.map-dir-size", mapDir.findAll(f -> f.extension().equals(Vars.mapExtension)).size));
 
             info(bundle.get("commands.status.title"), builder.toString()).subscribe();
-        });
-
-        adminHandler.register("delete", "<amount>", bundle.get("commands.delete.description"), args -> {
-            if(Strings.parseInt(args[0]) <= 0){
-                err(bundle.get("commands.delete.incorrect-number")).subscribe();
-                return;
-            }
-
-            int number = Strings.parseInt(args[0]);
-
-            if(number >= 100){
-                err(bundle.format("commands.delete.limit-number", 100));
-                return;
-            }
-
-            channel.getMessagesBefore(lastMessage.getId())
-                            .limitRequest(number)
-                            .subscribeOn(Schedulers.boundedElastic())
-                            .subscribe(m -> m.delete().block());
         });
 
         handler.register("postmap", bundle.get("commands.postmap.description"), args -> {
@@ -209,7 +177,7 @@ public class Listener extends ReactiveEventAdapter implements CommandLineRunner{
 
                 ContentHandler.Map map = contentHandler.readMap(Net.download(a.getUrl()));
                 Fi mapFile = mapDir.child(a.getFilename());
-                Fi image = mapDir.child(String.format("img_%s_%s.png", a.getFilename().replace(Vars.mapExtension, ""), fileFormatter.format(LocalDateTime.now())));
+                Fi image = mapDir.child(String.format("img_%s.png", UUID.randomUUID().toString()));
                 Streams.copy(Net.download(a.getUrl()), mapFile.write());
                 ImageIO.write(map.image, "png", image.file());
 
@@ -233,7 +201,15 @@ public class Listener extends ReactiveEventAdapter implements CommandLineRunner{
                         .block();
             }catch(Exception e){
                 Log.err(e);
-                err(bundle.get("commands.parsing-error"), Strings.neatError(e, true)).then(deleteMessages()).subscribe();
+                gateway.getUserById(config.developerId)
+                       .flatMap(User::getPrivateChannel)
+                       .flatMap(channel -> channel.createEmbed(spec ->
+                               spec.setColor(errorColor)
+                                   .setTitle(bundle.get("commands.parsing-error"))
+                                   .setDescription(Strings.neatError(e, true))
+                       ))
+                       .then(message.addReaction(failed))
+                       .subscribe();
             }
         });
 
@@ -250,7 +226,7 @@ public class Listener extends ReactiveEventAdapter implements CommandLineRunner{
 
                 BufferedImage preview = contentHandler.previewSchematic(schem);
 
-                Fi previewFile = schemeDir.child(String.format("img_%s_%s.png", schem.name(), fileFormatter.format(LocalDateTime.now())));
+                Fi previewFile = schemeDir.child(String.format("img_%s.png", UUID.randomUUID().toString()));
                 Fi schemFile = schemeDir.child(schem.name() + "." + Vars.schematicExtension);
                 Schematics.write(schem, schemFile);
                 ImageIO.write(preview, "png", previewFile.file());
@@ -258,13 +234,14 @@ public class Listener extends ReactiveEventAdapter implements CommandLineRunner{
                 Consumer<EmbedCreateSpec> embed = spec -> {
                     spec.setColor(normalColor);
                     spec.setImage("attachment://" + previewFile.name());
-                    spec.setAuthor(member.getUsername(), null, member.getAvatarUrl()).setTitle(schem.name());
+                    spec.setAuthor(member.getUsername(), null, member.getAvatarUrl());
+                    spec.setTitle(schem.name());
                     StringBuilder field = new StringBuilder();
 
                     schem.requirements().forEach(stack -> {
                         GuildEmoji result = guild.getEmojis()
-                                                          .filter(emoji -> emoji.getName().equalsIgnoreCase(stack.item.name.replace("-", "")))
-                                                          .blockFirst();
+                                .filter(emoji -> emoji.getName().equalsIgnoreCase(stack.item.name.replace("-", "")))
+                                .blockFirst();
 
                         field.append(Objects.requireNonNull(result).asFormat()).append(stack.amount).append("  ");
                     });
@@ -280,7 +257,15 @@ public class Listener extends ReactiveEventAdapter implements CommandLineRunner{
                         .block();
             }catch(Exception e){
                 Log.err(e);
-                err(bundle.get("commands.parsing-error"), Strings.neatError(e, true)).then(deleteMessages()).subscribe();
+                gateway.getUserById(config.developerId)
+                        .flatMap(User::getPrivateChannel)
+                        .flatMap(channel -> channel.createEmbed(spec ->
+                                spec.setColor(errorColor)
+                                    .setTitle(bundle.get("commands.parsing-error"))
+                                    .setDescription(Strings.neatError(e, true))
+                        ))
+                        .then(message.addReaction(failed))
+                        .subscribe();
             }
         });
     }
@@ -394,31 +379,30 @@ public class Listener extends ReactiveEventAdapter implements CommandLineRunner{
     }
 
     public Mono<Void> handle(MessageCreateEvent event){
-        Message message = event.getMessage();                             // искоренить  //
-        TextChannel channel = message.getChannel().cast(TextChannel.class).blockOptional().orElseThrow(RuntimeException::new);
+        Message message = event.getMessage();
         Member member = event.getMember().orElseThrow(RuntimeException::new);
         String text = message.getContent();
+        return message.getChannel()
+                .cast(TextChannel.class)
+                .flatMap(channel -> {
+                    if(!isAdmin(member)){
+                        if(Structs.contains(swears, text::equalsIgnoreCase)){
+                            return message.delete();
+                        }
+                    }
 
-        if(!isAdmin(member)){
-            if(Structs.contains(swears, text::equalsIgnoreCase)){
-                return message.delete();
-            }
-        }
+                    if(!Objects.equals(config.commandChannelId, channel.getId()) && !isAdmin(member)){
+                        return Mono.empty();
+                    }
 
-        if(!Objects.equals(config.commandChannelId, channel.getId()) && !isAdmin(member)){
-            return Mono.empty();
-        }
+                    this.channel = channel;
+                    if(text.startsWith(config.prefix)){
+                        lastMember = member;
+                        lastMessage = message;
+                    }
 
-        this.channel = channel;
-        if(text.startsWith(config.prefix)){
-            lastMember = member;
-            lastMessage = message;
-        }
-
-        return Mono.just(member).flatMap(m -> isAdmin(m) ? Mono.fromRunnable(() -> {
-            boolean unknown = handleResponse(adminHandler.handleMessage(text), false);
-            handleResponse(handler.handleMessage(text), !unknown);
-        }) : Mono.fromRunnable(() -> handleResponse(handler.handleMessage(text), true)));
+                    return handleResponse(handler.handleMessage(text));
+                });
     }
 
     public Mono<Void> deleteMessages(){
@@ -439,26 +423,21 @@ public class Listener extends ReactiveEventAdapter implements CommandLineRunner{
         return ownerId.equals(member.getId()) || admin;
     }
 
-    boolean handleResponse(CommandHandler.CommandResponse response, boolean logUnknown){
+    Mono<Void> handleResponse(CommandResponse response){
         if(response.type == CommandHandler.ResponseType.unknownCommand){
-            if(logUnknown){
-                err(bundle.format("commands.response.unknown", config.prefix)).then(deleteMessages()).subscribe();
-            }
-            return false;
+            return err(bundle.format("commands.response.unknown", config.prefix)).then(deleteMessages());
         }else if(response.type == CommandHandler.ResponseType.manyArguments || response.type == CommandHandler.ResponseType.fewArguments){
             if(response.command.params.length == 0){
-                err(bundle.get("commands.response.incorrect-arguments"),
-                             bundle.format("commands.response.incorrect-argument",
-                                           config.prefix, response.command.text)).subscribe();
+                return err(bundle.get("commands.response.incorrect-arguments"),
+                           bundle.format("commands.response.incorrect-argument",
+                                         config.prefix, response.command.text)).then(deleteMessages());
             }else{
-                err(bundle.get("commands.response.incorrect-arguments"),
-                             bundle.format("commands.response.incorrect-arguments.text",
-                                           config.prefix, response.command.text, response.command.paramText)).subscribe();
+                return err(bundle.get("commands.response.incorrect-arguments"),
+                           bundle.format("commands.response.incorrect-arguments.text",
+                                         config.prefix, response.command.text, response.command.paramText)).then(deleteMessages());
             }
-            deleteMessages().subscribe();
-            return false;
         }
-        return true;
+        return Mono.empty();
     }
 
     @Override
