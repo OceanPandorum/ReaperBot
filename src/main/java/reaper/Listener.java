@@ -268,6 +268,27 @@ public class Listener extends ReactiveEventAdapter implements CommandLineRunner{
                         .subscribe();
             }
         });
+
+        handler.register("вдурку", "<user/message id>", bundle.get("commands.postschem.description"), args -> {
+            Message message = lastMessage;
+            User targeter = null;
+            targeter=message.getAuthor().get();
+            if (message.getUserMentions() != null) {
+                targeter = message.getUserMentions().blockFirst();
+            } else {
+                if (gateway.getUserById(Snowflake.of(args[0])) != null) {
+                    targeter = gateway.getUserById(Snowflake.of(args[0])).block();
+                }
+            }
+            User finalTargeter = targeter;
+            Consumer<EmbedCreateSpec> embed = spec -> {
+                spec.setColor(normalColor)
+                .addField(bundle.get("commands.vdurky.header"), message.getAuthor().get().getMention()+" "+bundle.get("commands.vdurky.msg")+" "+ finalTargeter.getMention(), false);
+
+            };
+            embed(embed);
+
+        });
     }
 
     @Scheduled(cron = "*/30 * * * * *") // каждые 30 секунд
