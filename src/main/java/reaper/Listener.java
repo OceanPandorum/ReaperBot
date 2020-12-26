@@ -269,7 +269,7 @@ public class Listener extends ReactiveEventAdapter implements CommandLineRunner{
             }
         });
 
-        handler.register("вдурку", "<user/message id>", bundle.get("commands.postschem.description"), args -> {
+        handler.register("вдурку", "<user/message id>", bundle.get("nope"), args -> {
             Message message = lastMessage;
             User targeter = null;
             targeter=message.getAuthor().get();
@@ -286,7 +286,7 @@ public class Listener extends ReactiveEventAdapter implements CommandLineRunner{
                 .addField(bundle.get("commands.vdurky.header"), message.getAuthor().get().getMention()+" "+bundle.get("commands.vdurky.msg")+" "+ finalTargeter.getMention(), false);
 
             };
-            embed(embed);
+            embed(embed).subscribe();
 
         });
     }
