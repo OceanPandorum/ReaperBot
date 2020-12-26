@@ -269,25 +269,11 @@ public class Listener extends ReactiveEventAdapter implements CommandLineRunner{
             }
         });
 
-        handler.register("вдурку", "<user/message id>", bundle.get("nope"), args -> {
+        handler.register("вдурку", "<@user/id>", bundle.get("commands.vdurky.description"), args -> {
             Message message = lastMessage;
-            User targeter = null;
-            targeter=message.getAuthor().get();
-            if (message.getUserMentions() != null) {
-                targeter = message.getUserMentions().blockFirst();
-            } else {
-                if (gateway.getUserById(Snowflake.of(args[0])) != null) {
-                    targeter = gateway.getUserById(Snowflake.of(args[0])).block();
-                }
-            }
-            User finalTargeter = targeter;
-            Consumer<EmbedCreateSpec> embed = spec -> {
-                spec.setColor(normalColor)
-                .addField(bundle.get("commands.vdurky.header"), message.getAuthor().get().getMention()+" "+bundle.get("commands.vdurky.msg")+" "+ finalTargeter.getMention(), false);
+            User target = Optional.ofNullable(message.getUserMentions().blockFirst()).orElse(lastMember);
 
-            };
-            embed(embed).subscribe();
-
+            info(bundle.get("commands.vdurky.title"), bundle.format("commands.vdurky.text", lastMember.getMention(), target.getMention())).subscribe();
         });
     }
 
