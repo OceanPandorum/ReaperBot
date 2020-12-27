@@ -9,7 +9,7 @@ import reaper.entity.AdminAction;
 import reaper.repository.AdminActionRepository;
 
 @RestController
-@RequestMapping("/")
+@RequestMapping("/api/v1")
 public class AdminActionController{
     private static final Logger log = LoggerFactory.getLogger(AdminActionController.class);
 

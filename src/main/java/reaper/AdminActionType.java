@@ -1,5 +1,8 @@
 package reaper;
 
 public enum AdminActionType{
-    ban
+    ban,
+    softban,
+    kick,
+    mute
 }
