@@ -40,6 +40,7 @@ import java.lang.management.*;
 import java.time.*;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
+import java.util.Timer;
 import java.util.concurrent.*;
 import java.util.function.Consumer;
 
@@ -52,6 +53,18 @@ public class Listener extends ReactiveEventAdapter implements CommandLineRunner{
     private static final ReactionEmoji success = ReactionEmoji.unicode("✅");
     private static final ReactionEmoji failed = ReactionEmoji.unicode("❌");
     private boolean[] all;
+
+    public static ArrayList<User> inDurka=new ArrayList<>();
+    public static ArrayList<User> voted=new ArrayList<>();
+    public static int votes=0;
+    public static User target=null;
+    public static int requeriedVotes=5;
+    public static int voteTime=60;
+    public static int inDurkaTime=60;
+    public static long offtop=768570068619100191l;
+
+
+    public static Timer timer=new Timer();
 
     @Autowired
     private MessageService bundle;
@@ -269,11 +282,16 @@ public class Listener extends ReactiveEventAdapter implements CommandLineRunner{
             }
         });
 
-        handler.register("вдурку", "<@user/id>", bundle.get("commands.vdurky.description"), args -> {
+        handler.register("вдурку", "<@user>", bundle.get("commands.vdurky.description"), args -> {
             Message message = lastMessage;
-            User target = Optional.ofNullable(message.getUserMentions().blockFirst()).orElse(lastMember);
-
-            info(bundle.get("commands.vdurky.title"), bundle.format("commands.vdurky.text", lastMember.getMention(), target.getMention())).subscribe();
+            User targetL = Optional.ofNullable(message.getUserMentions().blockFirst()).orElse(lastMember);
+            if(targetL==message.getAuthor().get()){bundle.get("commands.vdurky.selfvote");return;}
+            if(targetL!=target&&target!=null){bundle.get("commands.vdurky.otherTarget");return;}
+            if(voted.contains(message.getAuthor().get())){bundle.get("commands.vdurky.already");return;}
+            votes++;
+            voted.add(message.getAuthor().get());
+            if(target==null){target=targetL;timer.schedule(new Pusher(),60*1000);}
+            info(bundle.get("commands.vdurky.title"), bundle.format("commands.vdurky.text", lastMember.getMention(), targetL.getMention(), votes,requeriedVotes)).subscribe();
         });
     }
 
@@ -477,5 +495,28 @@ public class Listener extends ReactiveEventAdapter implements CommandLineRunner{
                 .publishOn(Schedulers.boundedElastic())
                 .doOnNext(message -> lastSentMessage = message)
                 .then();
+    }
+    public class Pusher extends TimerTask{
+        @Override
+        public void run() {
+            if(votes>=requeriedVotes){
+                voted=new ArrayList<>();votes=0;inDurka.add(target);
+                TextChannel t=guild.getChannelById(Snowflake.of(offtop))
+                        .cast(TextChannel.class).blockOptional().get();
+                t.createEmbed(e -> e.setTitle(bundle.get("commands.vdurky.title")).setDescription(Strings.format(bundle.get("commands.vdurky.done"), target.getMention())).setColor(normalColor)).subscribe();
+                timer.schedule(new Sanitar(),inDurkaTime*1000);
+            }else{
+                voted=new ArrayList<>();votes=0;
+                TextChannel t=guild.getChannelById(Snowflake.of(offtop))
+                        .cast(TextChannel.class).blockOptional().get();
+                t.createEmbed(e -> e.setTitle(bundle.get("commands.vdurky.title")).setDescription(Strings.format(bundle.get("commands.vdurky.undone"), target.getMention())).setColor(errorColor)).subscribe();
+            }
+        }
+    }
+    public class Sanitar extends TimerTask{
+        @Override
+        public void run() {
+            inDurka.remove(0);
+        }
     }
 }
