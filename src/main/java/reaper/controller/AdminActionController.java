@@ -25,13 +25,13 @@ public class AdminActionController{
     }
 
     @GetMapping("/actions/{type}/{targetId}")
-    public Flux<AdminAction> get(@PathVariable AdminActionType type, @PathVariable String targetId){
+    public Mono<AdminAction> get(@PathVariable AdminActionType type, @PathVariable String targetId){
         return repository.findByTypeAndTargetId(type, targetId);
     }
 
     @PostMapping("/actions")
     public Mono<AdminAction> add(@RequestBody AdminAction adminAction){
-        Mono<AdminAction> action = repository.findByTypeAndTargetId(adminAction.type(), adminAction.targetId()).next();
+        Mono<AdminAction> action = repository.findByTypeAndTargetId(adminAction.type(), adminAction.targetId());
         return action.hasElement().flatMap(e -> e ? action.flatMap(a -> repository.save(a.plusEndTimestamp(adminAction.endTimestamp()))) : repository.save(adminAction));
     }
 

@@ -7,7 +7,9 @@ import reaper.entity.AdminAction;
 
 public interface AdminActionRepository extends ReactiveCrudRepository<AdminAction, String>{
 
-    Flux<AdminAction> findByTypeAndTargetId(AdminActionType type, String targetId);
+    Mono<AdminAction> findByTypeAndTargetId(AdminActionType type, String targetId);
+
+    Mono<Boolean> existsByTypeAndTargetId(AdminActionType type, String targetId);
 
     Flux<AdminAction> findAllByType(AdminActionType type);
 
