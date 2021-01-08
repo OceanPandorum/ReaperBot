@@ -20,6 +20,7 @@ import mindustry.game.*;
 import mindustry.io.*;
 import mindustry.world.*;
 import mindustry.world.blocks.environment.OreBlock;
+import reactor.core.scheduler.Schedulers;
 
 import javax.imageio.ImageIO;
 import java.awt.*;
@@ -249,7 +250,6 @@ public class ContentHandler{
 
                 @Override
                 public void onReadBuilding(){
-                    //read team colors
                     if(tile.build != null){
                         int c = tile.build.team.color.argb8888();
                         int size = tile.block().size;

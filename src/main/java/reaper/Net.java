@@ -1,14 +1,7 @@
 package reaper;
 
-import arc.func.Cons;
-import arc.util.*;
-import io.netty.buffer.*;
-import mindustry.net.*;
-import reactor.core.scheduler.Schedulers;
-
 import java.io.InputStream;
 import java.net.*;
-import java.util.concurrent.TimeUnit;
 
 public abstract class Net{
 
@@ -22,36 +15,5 @@ public abstract class Net{
         }catch(Exception e){
             throw new RuntimeException(e);
         }
-    }
-
-    public static void pingServer(String ip, Cons<Host> listener){
-        Schedulers.boundedElastic().schedule(() -> {
-            try{
-                String resultIP = ip;
-                int port = 6567;
-                if(ip.contains(":") && Strings.canParsePositiveInt(ip.split(":")[1])){
-                    resultIP = ip.split(":")[0];
-                    port = Strings.parseInt(ip.split(":")[1]);
-                }
-
-                DatagramSocket socket = new DatagramSocket();
-                socket.send(new DatagramPacket(new byte[]{-2, 1}, 2, InetAddress.getByName(resultIP), port));
-
-                socket.setSoTimeout(2000);
-
-                DatagramPacket packet = new DatagramPacket(new byte[256], 256);
-
-                long start = Time.millis();
-                socket.receive(packet);
-
-                ByteBuf buffer = Unpooled.wrappedBuffer(packet.getData());
-                listener.get(NetworkIO.readServerData((int)Time.timeSinceMillis(start), ip, buffer.nioBuffer()));
-                buffer.clear();
-                socket.disconnect();
-            }catch(Exception e){
-                listener.get(new Host(0, null, ip, null, 0, 0,
-                                      0, null, null, 0, null, null));
-            }
-        }, 2, TimeUnit.SECONDS);
     }
 }

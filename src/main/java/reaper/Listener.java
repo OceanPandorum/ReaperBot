@@ -2,18 +2,16 @@ package reaper;
 
 import arc.Core;
 import arc.files.Fi;
-import arc.func.*;
 import arc.struct.*;
 import arc.util.*;
-import arc.util.CommandHandler.CommandResponse;
 import arc.util.io.Streams;
 import discord4j.common.util.Snowflake;
 import discord4j.core.*;
 import discord4j.core.event.ReactiveEventAdapter;
 import discord4j.core.event.domain.message.*;
 import discord4j.core.object.entity.*;
-import discord4j.core.object.entity.channel.*;
 import discord4j.core.object.entity.channel.Channel.Type;
+import discord4j.core.object.entity.channel.TextChannel;
 import discord4j.core.object.presence.Presence;
 import discord4j.core.object.reaction.ReactionEmoji;
 import discord4j.core.spec.EmbedCreateSpec;
@@ -21,13 +19,12 @@ import discord4j.discordjson.json.*;
 import discord4j.gateway.intent.*;
 import discord4j.rest.response.ResponseFunction;
 import discord4j.rest.util.*;
+import discord4j.store.api.util.Lazy;
 import mindustry.Vars;
 import mindustry.game.*;
-import mindustry.net.Host;
 import org.reactivestreams.Publisher;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.CommandLineRunner;
-import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 import reactor.core.publisher.Mono;
 import reactor.core.scheduler.Schedulers;
@@ -37,39 +34,36 @@ import javax.annotation.*;
 import javax.imageio.ImageIO;
 import java.awt.image.BufferedImage;
 import java.lang.management.*;
-import java.time.*;
-import java.time.format.DateTimeFormatter;
+import java.time.Duration;
 import java.util.*;
-import java.util.concurrent.*;
-import java.util.function.Consumer;
+import java.util.concurrent.TimeUnit;
+import java.util.function.*;
 
 import static arc.Files.FileType.classpath;
 import static reaper.Constants.*;
 
 @Component
 public class Listener extends ReactiveEventAdapter implements CommandLineRunner{
-    private static final DateTimeFormatter statusFormatter = DateTimeFormatter.ofPattern("dd MMM yyyy HH:mm:ss ZZZZ");
     private static final ReactionEmoji success = ReactionEmoji.unicode("✅");
     private static final ReactionEmoji failed = ReactionEmoji.unicode("❌");
-    private boolean[] all;
 
     @Autowired
     private MessageService bundle;
 
+    @Autowired
+    private reaper.command.CommandHandler handler;
+
     protected GatewayDiscordClient gateway;
-    protected Guild guild;
-    protected TextChannel channel;
-    protected Member lastMember;
-    protected Message lastMessage, lastSentMessage;
 
-    private final ObjectMap<Snowflake, boolean[]> validation = new ObjectMap<>();
     private Seq<Snowflake> roleMessages;
+    private final ObjectMap<Snowflake, boolean[]> validation = new ObjectMap<>();
+    private final Supplier<boolean[]> all = () -> {
+        boolean[] booleans = new boolean[roleMessages.size];
+        Arrays.fill(booleans, true);
+        return booleans;
+    };
 
-    private final CommandHandler handler;
-
-    public final Color normalColor = Color.of(0xb9fca6), errorColor = Color.of(0xff3838);
-
-    public String[] swears;
+    public static String[] swears;
 
     public Listener(){
         configFile = Fi.get("prefs.json");
@@ -85,8 +79,6 @@ public class Listener extends ReactiveEventAdapter implements CommandLineRunner{
 
         schemeDir.mkdirs();
         mapDir.mkdirs();
-
-        handler = new CommandHandler(config.prefix);
     }
 
     @PostConstruct
@@ -96,8 +88,7 @@ public class Listener extends ReactiveEventAdapter implements CommandLineRunner{
         Core.net = new arc.Net();
 
         roleMessages = Seq.with(config.listenedMessages);
-        Schedulers.parallel().schedule(this::lateInitialize);
-        Schedulers.parallel().schedule(this::register);
+        lateInitialize();
 
         gateway = DiscordClientBuilder
                 .create(Objects.requireNonNull(config.token))
@@ -112,11 +103,12 @@ public class Listener extends ReactiveEventAdapter implements CommandLineRunner{
                 .blockOptional()
                 .orElseThrow(RuntimeException::new);
 
+        reactionListener = new ReactionListener();
+
         gateway.on(this).subscribe();
+        gateway.on(reactionListener).subscribe();
 
-        gateway.updatePresence(Presence.idle(ActivityUpdateRequest.builder().type(0).name(bundle.get("listener.status")).build())).block();
-
-        guild = gateway.getGuildById(config.guildId).block();
+        gateway.updatePresence(Presence.idle(ActivityUpdateRequest.builder().type(0).name(bundle.get("discord.status")).build())).block();
 
         ownerId = gateway.rest().getApplicationInfo()
                          .map(ApplicationInfoData::owner)
@@ -124,203 +116,7 @@ public class Listener extends ReactiveEventAdapter implements CommandLineRunner{
                          .block();
     }
 
-    private void register(){
-        handler.register("help", bundle.get("commands.help.description"), args -> {
-            StringBuilder common = new StringBuilder();
-            Cons2<CommandHandler.Command, StringBuilder> append = (command, builder) -> {
-                builder.append(config.prefix);
-                builder.append("**");
-                builder.append(command.text);
-                builder.append("**");
-                if(command.params.length > 0){
-                    builder.append(" *");
-                    builder.append(command.paramText);
-                    builder.append('*');
-                }
-                builder.append(" - ");
-                builder.append(command.description);
-                builder.append('\n');
-            };
-
-            for(CommandHandler.Command command : handler.getCommandList()){
-                append.get(command, common);
-            }
-
-            info(bundle.get("commands.help.title"), common.toString()).subscribe();
-        });
-
-        handler.register("status", bundle.get("commands.status.description"), args -> {
-            StringBuilder builder = new StringBuilder();
-            RuntimeMXBean rb = ManagementFactory.getRuntimeMXBean();
-
-            long mem = (Runtime.getRuntime().totalMemory() - Runtime.getRuntime().freeMemory()) / 1024 / 1024;
-            builder.append(bundle.format("commands.status.memory", mem)).append('\n');
-            builder.append(bundle.format("commands.status.uptime", Strings.formatMillis(rb.getUptime()))).append('\n');
-            builder.append(bundle.format("commands.status.swears-count", swears.length)).append('\n');
-            builder.append(bundle.format("commands.status.schem-dir-size", schemeDir.findAll(f -> f.extension().equals(Vars.schematicExtension)).size)).append('\n');
-            builder.append(bundle.format("commands.status.map-dir-size", mapDir.findAll(f -> f.extension().equals(Vars.mapExtension)).size));
-
-            info(bundle.get("commands.status.title"), builder.toString()).subscribe();
-        });
-
-        handler.register("postmap", bundle.get("commands.postmap.description"), args -> {
-            Message message = lastMessage;
-
-            if(message.getAttachments().size() != 1 ||
-               message.getAttachments().stream().findFirst().map(a -> !a.getFilename().endsWith(Vars.mapExtension)).orElse(true)){
-                err(bundle.get("commands.postmap.empty-attachments")).then(deleteMessages()).subscribe();
-                return;
-            }
-
-            try{
-                Attachment a = message.getAttachments().stream().findFirst().orElseThrow(RuntimeException::new);
-
-                ContentHandler.Map map = contentHandler.readMap(Net.download(a.getUrl()));
-                Fi mapFile = mapDir.child(a.getFilename());
-                Fi image = mapDir.child(String.format("img_%s.png", UUID.randomUUID().toString()));
-                Streams.copy(Net.download(a.getUrl()), mapFile.write());
-                ImageIO.write(map.image, "png", image.file());
-
-                Member member = message.getAuthorAsMember().block();
-                Objects.requireNonNull(member);
-
-                Consumer<EmbedCreateSpec> embed = spec -> {
-                    spec.setColor(normalColor);
-                    spec.setImage("attachment://" + image.name());
-                    spec.setAuthor(member.getUsername(), null, member.getAvatarUrl());
-                    spec.setTitle(map.name == null ? a.getFilename().replace(Vars.mapExtension, "") : map.name);
-                    if(map.description != null) spec.setFooter(map.description, null);
-                };
-
-                guild.getChannelById(config.mapsChannelId)
-                        .publishOn(Schedulers.boundedElastic())
-                        .cast(TextChannel.class)
-                        .flatMap(c -> c.createMessage(m -> m.addFile(image.name(), image.read()).setEmbed(embed)
-                                .addFile(mapFile.name(), mapFile.read())))
-                        .then(message.addReaction(success))
-                        .block();
-            }catch(Exception e){
-                Log.err(e);
-                gateway.getUserById(config.developerId)
-                       .flatMap(User::getPrivateChannel)
-                       .flatMap(channel -> channel.createEmbed(spec ->
-                               spec.setColor(errorColor)
-                                   .setTitle(bundle.get("commands.parsing-error"))
-                                   .setDescription(Strings.neatError(e, true))
-                       ))
-                       .then(message.addReaction(failed))
-                       .subscribe();
-            }
-        });
-
-        handler.register("postschem", "[schem]", bundle.get("commands.postschem.description"), args -> {
-            Message message = lastMessage;
-            Member member = lastMember;
-
-            try{
-                Schematic schem = message.getAttachments().size() == 1
-                ? contentHandler.parseSchematicURL(message.getAttachments().stream().findFirst().orElseThrow(RuntimeException::new).getUrl())
-                : contentHandler.parseSchematic(args.length > 0 && args[0].startsWith(Vars.schematicBaseStart) ? args[0] : null);
-
-                Objects.requireNonNull(schem, bundle.get("commands.postschem.schem-is-null"));
-
-                BufferedImage preview = contentHandler.previewSchematic(schem);
-
-                Fi previewFile = schemeDir.child(String.format("img_%s.png", UUID.randomUUID().toString()));
-                Fi schemFile = schemeDir.child(schem.name() + "." + Vars.schematicExtension);
-                Schematics.write(schem, schemFile);
-                ImageIO.write(preview, "png", previewFile.file());
-
-                Consumer<EmbedCreateSpec> embed = spec -> {
-                    spec.setColor(normalColor);
-                    spec.setImage("attachment://" + previewFile.name());
-                    spec.setAuthor(member.getUsername(), null, member.getAvatarUrl());
-                    spec.setTitle(schem.name());
-                    StringBuilder field = new StringBuilder();
-
-                    schem.requirements().forEach(stack -> {
-                        GuildEmoji result = guild.getEmojis()
-                                .filter(emoji -> emoji.getName().equalsIgnoreCase(stack.item.name.replace("-", "")))
-                                .blockFirst();
-
-                        field.append(Objects.requireNonNull(result).asFormat()).append(stack.amount).append("  ");
-                    });
-                    spec.setTitle(schem.name());
-                    spec.setDescription(field.toString());
-                };
-
-                guild.getChannelById(config.schematicsChannelId)
-                        .cast(TextChannel.class)
-                        .flatMap(c -> c.createMessage(m -> m.addFile(previewFile.name(), previewFile.read())
-                                .setEmbed(embed).addFile(schemFile.name(), schemFile.read())))
-                        .then(message.addReaction(success))
-                        .block();
-            }catch(Exception e){
-                Log.err(e);
-                gateway.getUserById(config.developerId)
-                        .flatMap(User::getPrivateChannel)
-                        .flatMap(channel -> channel.createEmbed(spec ->
-                                spec.setColor(errorColor)
-                                    .setTitle(bundle.get("commands.parsing-error"))
-                                    .setDescription(Strings.neatError(e, true))
-                        ))
-                        .then(message.addReaction(failed))
-                        .subscribe();
-            }
-        });
-
-        handler.register("вдурку", "<@user/id>", bundle.get("commands.vdurky.description"), args -> {
-            Message message = lastMessage;
-            User target = Optional.ofNullable(message.getUserMentions().blockFirst()).orElse(lastMember);
-
-            info(bundle.get("commands.vdurky.title"), bundle.format("commands.vdurky.text", lastMember.getMention(), target.getMention())).subscribe();
-        });
-    }
-
-    @Scheduled(cron = "*/30 * * * * *") // каждые 30 секунд
-    public void serviceStatus(){
-        Func<String, String> replace = s -> s.replace("\\", "\\\\").replace("_", "\\_")
-                                             .replace("*", "\\*").replace("`", "\\`");
-        CopyOnWriteArrayList<Host> results = new CopyOnWriteArrayList<>();
-
-        config.servers.forEach(server -> Net.pingServer(server, results::add));
-
-        Schedulers.boundedElastic().schedule(() -> {
-            results.sort((a, b) -> a.name != null && b.name == null
-            ? 1 : a.name == null && b.name != null ? -1 : Integer.compare(a.players, b.players));
-
-            Consumer<EmbedCreateSpec> embed = spec -> {
-                spec.setColor(normalColor);
-                results.stream().filter(h -> h.name != null).forEach(result -> {
-                    spec.addField(result.address, Strings.format("*@*\n@: @\n@: @\n@: @\n@: @\n@: @\n_\n_\n",
-                        replace.get(result.name),
-                        bundle.get("listener.players"),
-                        (result.playerLimit > 0 ? result.players + "/" + result.playerLimit : result.players),
-                        bundle.get("listener.map"),
-                        replace.get(result.mapname).replaceAll("\\[.*?\\]", ""),
-                        bundle.get("listener.wave"),
-                        result.wave,
-                        bundle.get("listener.version"),
-                        result.version,
-                        bundle.get("listener.mode"),
-                        Strings.capitalize(result.mode.name())
-                    ), false);
-                });
-                spec.setDescription(bundle.format("listener.servers.all", results.stream().mapToInt(h -> h.players).sum()));
-                spec.setFooter(bundle.format("listener.servers.last-update", statusFormatter.format(ZonedDateTime.now())), null);
-            };
-
-            guild.getChannelById(config.serverChannelId)
-                    .cast(TextChannel.class)
-                    .flatMap(c -> c.getMessageById(config.serverMessageId).flatMap(m -> m.edit(e -> e.setEmbed(embed))))
-                    .block();
-        }, 2, TimeUnit.SECONDS);
-    }
-
-    //todo????
     private void lateInitialize(){
-        all = new boolean[roleMessages.size];
-        Arrays.fill(all, true);
         swears = new Fi("great_russian_language.txt", classpath)
                 .readString("UTF-8")
                 .replaceAll("\n", "")
@@ -337,9 +133,10 @@ public class Listener extends ReactiveEventAdapter implements CommandLineRunner{
                 return;
             }
 
-            Snowflake messageId = guild.getChannelById(i.channelId)
+            Snowflake messageId = gateway.getChannelById(i.channelId)
                     .cast(TextChannel.class)
-                    .flatMap(c -> c.createEmbed(e -> e.setColor(normalColor).setTitle(i.title).setDescription(i.description)))
+                    .flatMap(c -> c.createEmbed(e -> e.setColor(MessageService.normalColor)
+                            .setTitle(i.title).setDescription(i.description)))
                     .map(Message::getId)
                     .block();
 
@@ -377,7 +174,7 @@ public class Listener extends ReactiveEventAdapter implements CommandLineRunner{
             }
             Snowflake userId = event.getUserId();
             validation.put(userId, b);
-            if(Arrays.equals(b, all)){
+            if(Arrays.equals(b, all.get())){
                 return member.addRole(config.memberRoleId).then(Mono.fromRunnable(() -> validation.remove(userId)));
             }
         }
@@ -402,80 +199,23 @@ public class Listener extends ReactiveEventAdapter implements CommandLineRunner{
                         return Mono.empty();
                     }
 
-                    this.channel = channel;
-                    if(text.startsWith(config.prefix)){
-                        lastMember = member;
-                        lastMessage = message;
-                    }
-
-                    return handleResponse(handler.handleMessage(text));
+                    return handler.handle(event);
                 });
-    }
-
-    public Mono<Void> deleteMessages(){
-        return Mono.fromRunnable(() -> Schedulers.boundedElastic().schedule(() -> {
-            if(lastMessage != null && lastSentMessage != null){
-                lastMessage.delete().block();
-                lastSentMessage.delete().block();
-            }
-        }, 20, TimeUnit.SECONDS));
     }
 
     public boolean isAdmin(Member member){
         if(member == null) return false;
         boolean admin = member.getRoles()
-                              .any(r -> config.adminRoleId.equals(r.getId()) || r.getPermissions().contains(Permission.ADMINISTRATOR))
-                              .blockOptional().orElse(false);
+                .any(r -> config.adminRoleId.equals(r.getId()) || r.getPermissions().contains(Permission.ADMINISTRATOR))
+                .blockOptional().orElse(false);
 
         return ownerId.equals(member.getId()) || admin;
     }
 
-    Mono<Void> handleResponse(CommandResponse response){
-        if(response.type == CommandHandler.ResponseType.unknownCommand){
-            return err(bundle.format("commands.response.unknown", config.prefix)).then(deleteMessages());
-        }else if(response.type == CommandHandler.ResponseType.manyArguments || response.type == CommandHandler.ResponseType.fewArguments){
-            if(response.command.params.length == 0){
-                return err(bundle.get("commands.response.incorrect-arguments"),
-                           bundle.format("commands.response.incorrect-argument",
-                                         config.prefix, response.command.text)).then(deleteMessages());
-            }else{
-                return err(bundle.get("commands.response.incorrect-arguments"),
-                           bundle.format("commands.response.incorrect-arguments.text",
-                                         config.prefix, response.command.text, response.command.paramText)).then(deleteMessages());
-            }
-        }
-        return Mono.empty();
-    }
-
     @Override
     public void run(String... args) throws Exception{
-        if(args.length > 0 && args[0].equals("-info")){
+        if(args.length > 0 && args[0].equals("--info")){
             sendInfo(Strings.parseInt(args[1]));
         }
-    }
-
-    public Mono<Void> embed(Consumer<EmbedCreateSpec> embed){
-        return channel.createEmbed(embed)
-                .publishOn(Schedulers.boundedElastic())
-                .doOnNext(message -> lastSentMessage = message)
-                .then();
-    }
-
-    public Mono<Void> info(String title, String text, Object... args){
-        return channel.createEmbed(e -> e.setTitle(title).setDescription(Strings.format(text, args)).setColor(normalColor))
-                .publishOn(Schedulers.boundedElastic())
-                .doOnNext(message -> lastSentMessage = message)
-                .then();
-    }
-
-    public Mono<Void> err(String text, Object... args){
-        return err(bundle.get("listener.error"), text, args);
-    }
-
-    public Mono<Void> err(String title, String text, Object... args){
-        return channel.createEmbed(e -> e.setTitle(title).setDescription(Strings.format(text, args)).setColor(errorColor))
-                .publishOn(Schedulers.boundedElastic())
-                .doOnNext(message -> lastSentMessage = message)
-                .then();
     }
 }

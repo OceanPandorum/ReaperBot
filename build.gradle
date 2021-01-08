@@ -11,18 +11,18 @@ repositories{
 }
 
 ext{
-    mindustryVersion = 'v122'
-    d4jVersion       = '3.1.3'
-    gsonVersion      = '2.8.6'
+    mindustry_version = 'v122'
+    d4j_version       = '3.1.3'
+    gson_version      = '2.8.6'
 }
 
 project.ext.mainClassName = 'reaper.ReaperBot'
 
 dependencies{
-    implementation "com.discord4j:discord4j-core:$d4jVersion"
-    implementation "com.github.Anuken.Arc:arc-core:$mindustryVersion"
-    implementation "com.github.Anuken.Mindustry:core:$mindustryVersion"
-    implementation "com.google.code.gson:gson:$gsonVersion"
+    implementation "com.discord4j:discord4j-core:$d4j_version"
+    implementation "com.github.Anuken.Arc:arc-core:$mindustry_version"
+    implementation "com.github.Anuken.Mindustry:core:$mindustry_version"
+    implementation "com.google.code.gson:gson:$gson_version"
 
     implementation "org.springframework.boot:spring-boot-starter-data-r2dbc"
     implementation "org.springframework.boot:spring-boot-starter-webflux"
