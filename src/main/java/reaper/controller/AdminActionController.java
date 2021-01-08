@@ -4,7 +4,7 @@ import org.slf4j.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 import reactor.core.publisher.*;
-import reaper.*;
+import reaper.AdminActionType;
 import reaper.entity.AdminAction;
 import reaper.repository.AdminActionRepository;
 
