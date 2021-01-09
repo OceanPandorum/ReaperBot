@@ -13,7 +13,8 @@ import reactor.core.publisher.Mono;
 
 @Component
 public class ReactionListener extends ReactiveEventAdapter{
-    public static final Seq<String> all = Seq.with("⬅", "➡️", "⏺");
+    public static final long EXPIRE_TIME = 30000;
+    public static final Seq<String> all = Seq.with("⬅", "⏺", "➡️");
 
     public static ObjectMap<Snowflake, Func<ReactionAddEvent, Boolean>> addListeners = new ObjectMap<>();
     public static ObjectMap<Snowflake, Func2<ReactionAddEvent, ReactionRemoveEvent, Boolean>> listeners = new ObjectMap<>();
@@ -46,9 +47,9 @@ public class ReactionListener extends ReactiveEventAdapter{
         return Mono.fromRunnable(() -> unsubscribe(event.getMessageId()));
     }
 
-    @Scheduled(fixedDelay = 30000)
+    @Scheduled(fixedDelay = EXPIRE_TIME)
     public void monitor(){
-        Seq.with(messageTtl.entries()).each(e -> Time.timeSinceMillis(e.value) > 30000, e -> unsubscribe(e.key));
+        Seq.with(messageTtl.entries()).each(e -> Time.timeSinceMillis(e.value) > EXPIRE_TIME, e -> unsubscribe(e.key));
     }
 
     public void onReactionAdd(Snowflake message, Func<ReactionAddEvent, Boolean> handler){

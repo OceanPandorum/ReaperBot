@@ -5,6 +5,7 @@ import arc.func.Cons2;
 import arc.struct.Seq;
 import arc.util.Strings;
 import arc.util.io.Streams;
+import discord4j.core.object.Embed;
 import discord4j.core.object.entity.*;
 import discord4j.core.object.entity.channel.*;
 import discord4j.core.object.reaction.ReactionEmoji;
@@ -18,6 +19,7 @@ import reactor.core.scheduler.Schedulers;
 import reactor.util.*;
 import reaper.*;
 import reaper.service.MessageService;
+import reaper.util.MessageUtil;
 
 import javax.imageio.ImageIO;
 import java.awt.image.BufferedImage;
@@ -100,7 +102,7 @@ public class Commands{
             Member member = req.getAuthorAsMember();
             return message.getUserMentions().next().defaultIfEmpty(member)
                     .flatMap(target -> messageService.info(req.getReplyChannel(), messageService.get("command.vdurky.title"),
-                                                           messageService.format("command.vdurky.text", member.getMention(), target.getMention())));
+                            messageService.format("command.vdurky.text", member.getMention(), target.getMention())));
         }
     }
 
@@ -169,8 +171,7 @@ public class Commands{
             Message message = req.getMessage();
             Member member = req.getAuthorAsMember();
 
-            if(message.getAttachments().size() != 1 ||
-               message.getAttachments().stream().findFirst().map(a -> !a.getFilename().endsWith(Vars.mapExtension)).orElse(true)){
+            if(message.getAttachments().size() != 1 || message.getAttachments().stream().findFirst().map(a -> !a.getFilename().endsWith(Vars.mapExtension)).orElse(true)){
                 return req.getReplyChannel().flatMap(channel -> channel.createEmbed(spec -> spec.setColor(errorColor)
                         .setTitle(messageService.get("common.error"))
                         .setDescription(messageService.get("command.postmap.empty-attachments"))))
@@ -178,11 +179,11 @@ public class Commands{
             }
 
             try{
-                Attachment a = message.getAttachments().stream().findFirst().orElseThrow(RuntimeException::new);
+                Attachment attachment = message.getAttachments().stream().findFirst().orElseThrow(RuntimeException::new);
 
-                Fi mapFile = mapDir.child(a.getFilename());
-                Streams.copy(Net.download(a.getUrl()), mapFile.write());
-                ContentHandler.Map map = contentHandler.readMap(mapFile.read());
+                Fi mapFile = mapDir.child(attachment.getFilename());
+                Streams.copy(Net.download(attachment.getUrl()), mapFile.write());
+                ContentHandler.MapInfo map = contentHandler.readMap(mapFile.read());
                 Fi image = mapDir.child(String.format("img_%s.png", UUID.randomUUID().toString()));
                 ImageIO.write(map.image, "png", image.file());
 
@@ -190,10 +191,8 @@ public class Commands{
                     spec.setColor(normalColor);
                     spec.setImage("attachment://" + image.name());
                     spec.setAuthor(member.getUsername(), null, member.getAvatarUrl());
-                    spec.setTitle(map.name == null ? a.getFilename().replace(Vars.mapExtension, "") : map.name);
-                    if(map.description != null){
-                        spec.setFooter(map.description, null);
-                    }
+                    spec.setTitle(map.name.orElse(attachment.getFilename().replace(Vars.mapExtension, "")));
+                    map.description.ifPresent(description -> spec.setFooter(MessageUtil.trimTo(description, Embed.Footer.MAX_TEXT_LENGTH), null));
                 };
 
                 return req.getClient().getChannelById(config.mapsChannelId)
@@ -235,7 +234,7 @@ public class Commands{
             }
 
             Fi file = fiSeq.get(index);
-            ContentHandler.Map map;
+            ContentHandler.MapInfo map;
             try{
                 map = contentHandler.readMap(file.read());
             }catch(IOException e){
@@ -251,17 +250,13 @@ public class Commands{
             Consumer<EmbedCreateSpec> embed = spec -> {
                 spec.setColor(normalColor);
                 spec.setImage("attachment://" + image.name());
-                spec.setTitle("Map from " + args[0] + "; " + (map.name != null ? map.name : file.nameWithoutExtension()));
-                if(map.description != null){
-                    spec.setFooter(map.description, null);
-                }
+                spec.setTitle("Map from " + args[0] + "; " + map.name.orElse(file.nameWithoutExtension()));
+                map.description.ifPresent(description -> spec.setFooter(MessageUtil.trimTo(description, Embed.Footer.MAX_TEXT_LENGTH), null));
             };
 
             return channel.flatMap(c -> c.createMessage(spec -> spec.addFile(image.name(), image.read()).setEmbed(embed)))
                     .doOnNext(signal -> {
-                        signal.addReaction(ReactionEmoji.unicode(all.get(0)))
-                                .then(signal.addReaction(ReactionEmoji.unicode(all.get(2))))
-                                .then(signal.addReaction(ReactionEmoji.unicode(all.get(1)))).block();
+                        all.each(emoji -> signal.addReaction(ReactionEmoji.unicode(emoji)).block());
                         reactionListener.onReactionAdd(signal.getId(), add -> {
                             Optional<ReactionEmoji.Unicode> unicode = add.getEmoji().asUnicodeEmoji();
                             if(!add.getUserId().equals(req.getAuthorAsMember().getId())){
@@ -278,7 +273,7 @@ public class Commands{
                                 if(i == 0){ // назад
                                     log.info("left");
                                     return false;
-                                }else if(i == 1){ // вперёд
+                                }else if(i == 2){ // вперёд
                                     log.info("next");
                                     return false;
                                 }else{

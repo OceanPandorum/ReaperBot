@@ -20,13 +20,13 @@ import mindustry.game.*;
 import mindustry.io.*;
 import mindustry.world.*;
 import mindustry.world.blocks.environment.OreBlock;
-import reactor.core.scheduler.Schedulers;
 
 import javax.imageio.ImageIO;
 import java.awt.*;
 import java.awt.geom.AffineTransform;
 import java.awt.image.BufferedImage;
 import java.io.*;
+import java.util.Optional;
 import java.util.zip.InflaterInputStream;
 
 import static mindustry.Vars.*;
@@ -188,11 +188,11 @@ public class ContentHandler{
         return image;
     }
 
-    public Map readMap(InputStream is) throws IOException{
+    public MapInfo readMap(InputStream is) throws IOException{
         try(InputStream ifs = new InflaterInputStream(is);
             CounterInputStream counter = new CounterInputStream(ifs);
             DataInputStream stream = new DataInputStream(counter)){
-            Map out = new Map();
+            MapInfo out = new MapInfo();
 
             SaveIO.readHeader(stream);
             int version = stream.readInt();
@@ -202,9 +202,9 @@ public class ContentHandler{
 
             StringMap meta = metaOut[0];
 
-            out.name = meta.get("name", "Unknown");
-            out.author = meta.get("author");
-            out.description = meta.get("description");
+            out.name = Optional.ofNullable(meta.get("name", "Unknown"));
+            out.author = Optional.ofNullable(meta.get("author"));
+            out.description = Optional.ofNullable(meta.get("description"));
             out.tags = meta;
 
             int width = meta.getInt("width"), height = meta.getInt("height");
@@ -295,8 +295,10 @@ public class ContentHandler{
         return color.set(rgba).argb8888();
     }
 
-    public static class Map{
-        public String name, author, description;
+    public static class MapInfo{
+        public Optional<String> name;
+        public Optional<String> author;
+        public Optional<String> description;
         public StringMap tags = new StringMap();
         public BufferedImage image;
     }

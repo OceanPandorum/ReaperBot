@@ -44,8 +44,7 @@ import static reaper.Constants.*;
 
 @Component
 public class Listener extends ReactiveEventAdapter implements CommandLineRunner{
-    private static final ReactionEmoji success = ReactionEmoji.unicode("✅");
-    private static final ReactionEmoji failed = ReactionEmoji.unicode("❌");
+    public static final ObjectMap<Snowflake, boolean[]> validation = new ObjectMap<>();
 
     @Autowired
     private MessageService bundle;
@@ -56,7 +55,6 @@ public class Listener extends ReactiveEventAdapter implements CommandLineRunner{
     protected GatewayDiscordClient gateway;
 
     private Seq<Snowflake> roleMessages;
-    private final ObjectMap<Snowflake, boolean[]> validation = new ObjectMap<>();
     private final Supplier<boolean[]> all = () -> {
         boolean[] booleans = new boolean[roleMessages.size];
         Arrays.fill(booleans, true);
