@@ -1,14 +1,16 @@
 logging:
   pattern:
-    console: "%boldMagenta([%d{MM-dd-yyyy HH:mm:ss}]) %clr([%0.-1level]) %clr([%-15.-15t]){faint} %boldMagenta(%-40.40logger{39}) %clr(:){red} %clr(%m){faint}%n"
+    console: "%magenta([%d{MM-dd-yyyy HH:mm:ss}]) %clr([%0.-1level]) %clr([%-15.-15t]){faint} %magenta(%-40.40logger{39}) %clr(:){red} %clr(%m){faint}%n"
 spring:
   r2dbc:
-    url:
-    password:
-    username:
+    url: ""
+    password: ""
+    username: ""
   task:
     scheduling:
       pool:
-        size: 3
+        size: 2
 server:
-  port:
+  port: 1986
+  ssl:
+    enabled: false
