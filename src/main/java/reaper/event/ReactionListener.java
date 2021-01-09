@@ -1,4 +1,4 @@
-package reaper;
+package reaper.event;
 
 import arc.func.*;
 import arc.struct.*;

@@ -1,4 +1,4 @@
-package reaper;
+package reaper.util;
 
 import java.io.InputStream;
 import java.net.*;

@@ -20,6 +20,7 @@ import mindustry.game.*;
 import mindustry.io.*;
 import mindustry.world.*;
 import mindustry.world.blocks.environment.OreBlock;
+import reaper.util.Net;
 
 import javax.imageio.ImageIO;
 import java.awt.*;

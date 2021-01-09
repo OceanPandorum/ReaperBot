@@ -1,10 +1,9 @@
-package reaper;
+package reaper.event;
 
 import arc.Core;
 import arc.files.Fi;
 import arc.struct.*;
 import arc.util.*;
-import arc.util.io.Streams;
 import discord4j.common.util.Snowflake;
 import discord4j.core.*;
 import discord4j.core.event.ReactiveEventAdapter;
@@ -13,30 +12,21 @@ import discord4j.core.object.entity.*;
 import discord4j.core.object.entity.channel.Channel.Type;
 import discord4j.core.object.entity.channel.TextChannel;
 import discord4j.core.object.presence.Presence;
-import discord4j.core.object.reaction.ReactionEmoji;
-import discord4j.core.spec.EmbedCreateSpec;
 import discord4j.discordjson.json.*;
 import discord4j.gateway.intent.*;
 import discord4j.rest.response.ResponseFunction;
 import discord4j.rest.util.*;
-import discord4j.store.api.util.Lazy;
-import mindustry.Vars;
-import mindustry.game.*;
 import org.reactivestreams.Publisher;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.stereotype.Component;
 import reactor.core.publisher.Mono;
-import reactor.core.scheduler.Schedulers;
+import reaper.*;
+import reaper.event.ReactionListener;
 import reaper.service.MessageService;
 
 import javax.annotation.*;
-import javax.imageio.ImageIO;
-import java.awt.image.BufferedImage;
-import java.lang.management.*;
-import java.time.Duration;
 import java.util.*;
-import java.util.concurrent.TimeUnit;
 import java.util.function.*;
 
 import static arc.Files.FileType.classpath;

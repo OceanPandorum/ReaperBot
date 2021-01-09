@@ -18,8 +18,9 @@ import reactor.core.publisher.*;
 import reactor.core.scheduler.Schedulers;
 import reactor.util.*;
 import reaper.*;
+import reaper.event.Listener;
 import reaper.service.MessageService;
-import reaper.util.MessageUtil;
+import reaper.util.*;
 
 import javax.imageio.ImageIO;
 import java.awt.image.BufferedImage;
@@ -30,7 +31,7 @@ import java.util.*;
 import java.util.function.Consumer;
 
 import static reaper.Constants.*;
-import static reaper.ReactionListener.all;
+import static reaper.event.ReactionListener.all;
 import static reaper.service.MessageService.*;
 
 @Service
