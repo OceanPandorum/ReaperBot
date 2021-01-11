@@ -15,19 +15,18 @@ import discord4j.core.object.presence.Presence;
 import discord4j.discordjson.json.*;
 import discord4j.gateway.intent.*;
 import discord4j.rest.response.ResponseFunction;
-import discord4j.rest.util.*;
+import discord4j.rest.util.Permission;
 import org.reactivestreams.Publisher;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.stereotype.Component;
 import reactor.core.publisher.Mono;
 import reaper.*;
-import reaper.event.ReactionListener;
 import reaper.service.MessageService;
 
 import javax.annotation.*;
 import java.util.*;
-import java.util.function.*;
+import java.util.function.Supplier;
 
 import static arc.Files.FileType.classpath;
 import static reaper.Constants.*;

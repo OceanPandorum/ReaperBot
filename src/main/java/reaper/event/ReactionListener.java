@@ -47,7 +47,7 @@ public class ReactionListener extends ReactiveEventAdapter{
         return Mono.fromRunnable(() -> unsubscribe(event.getMessageId()));
     }
 
-    @Scheduled(fixedDelay = EXPIRE_TIME)
+    @Scheduled(fixedRate = EXPIRE_TIME)
     public void monitor(){
         Seq.with(messageTtl.entries()).each(e -> Time.timeSinceMillis(e.value) > EXPIRE_TIME, e -> unsubscribe(e.key));
     }

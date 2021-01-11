@@ -3,8 +3,9 @@ package reaper.command;
 import arc.files.Fi;
 import arc.func.Cons2;
 import arc.struct.Seq;
-import arc.util.Strings;
+import arc.util.*;
 import arc.util.io.Streams;
+import discord4j.common.util.Snowflake;
 import discord4j.core.object.Embed;
 import discord4j.core.object.entity.*;
 import discord4j.core.object.entity.channel.*;
@@ -17,7 +18,7 @@ import org.springframework.stereotype.Service;
 import reactor.core.publisher.*;
 import reactor.core.scheduler.Schedulers;
 import reactor.util.*;
-import reaper.*;
+import reaper.ContentHandler;
 import reaper.event.Listener;
 import reaper.service.MessageService;
 import reaper.util.*;
@@ -43,6 +44,8 @@ public class Commands{
 
     @Autowired
     private MessageService messageService;
+
+    private final Timekeeper durkaCooldown = new Timekeeper(5);
 
     public Mono<Void> deleteMessages(Message... messages){
         Flux<Message> flux = Flux.just(messages);
@@ -95,13 +98,25 @@ public class Commands{
         }
     }
 
-    @DiscordCommand(key = "вдурку", description = "command.vdurky.description")
+    @DiscordCommand(key = "вдурку", params = "<@user/id>", description = "command.vdurky.description")
     public class VdurkyCommand implements Command{
         @Override
         public Mono<Void> execute(String[] args, CommandRequest req, CommandResponse res){
-            Message message = req.getMessage();
+            if(!durkaCooldown.get()){
+                return req.getReplyChannel().flatMap(channel -> channel.createEmbed(spec -> spec.setColor(errorColor)
+                        .setTitle(messageService.get("common.error"))
+                        .setDescription(messageService.get("command.vdurky.cooldown"))))
+                        .flatMap(self -> deleteMessages(self, req.getMessage()));
+            }
+
+            durkaCooldown.reset();
             Member member = req.getAuthorAsMember();
-            return message.getUserMentions().next().defaultIfEmpty(member)
+            Snowflake[] targetId = {MessageUtil.parseUserId(args[0])};
+            if(targetId[0] == null){
+                targetId[0] = member.getId();
+            }
+
+            return req.event().getGuild().flatMap(guild -> guild.getMemberById(targetId[0]))
                     .flatMap(target -> messageService.info(req.getReplyChannel(), messageService.get("command.vdurky.title"),
                             messageService.format("command.vdurky.text", member.getMention(), target.getMention())));
         }
