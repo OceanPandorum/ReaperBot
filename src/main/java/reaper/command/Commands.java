@@ -234,7 +234,7 @@ public class Commands{
     public class MapsCommand implements Command{
         @Override
         public Mono<Void> execute(String[] args, CommandRequest req, CommandResponse res){
-            if(!Strings.canParseInt(args[1]) && args.length > 2){
+            if(!MessageUtil.canParseId(args[1]) && args.length > 2){
                 return messageService.err(req.getReplyChannel(), "No u");
             }
 
@@ -272,7 +272,8 @@ public class Commands{
             Consumer<EmbedCreateSpec> embed = spec -> {
                 spec.setColor(normalColor);
                 spec.setImage("attachment://" + image.name());
-                spec.setTitle("Map from " + args[0] + "; " + map.name.orElse(file.nameWithoutExtension()));
+                spec.setTitle(map.name.orElse(file.nameWithoutExtension()));
+                spec.setDescription(messageService.format("command.maps.description", args[0], index, fiSeq.size));
                 map.description.ifPresent(description -> spec.setFooter(MessageUtil.trimTo(description, Embed.Footer.MAX_TEXT_LENGTH), null));
             };
 
