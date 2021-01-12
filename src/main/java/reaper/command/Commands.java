@@ -11,7 +11,6 @@ import discord4j.core.object.entity.*;
 import discord4j.core.object.entity.channel.*;
 import discord4j.core.object.reaction.ReactionEmoji;
 import discord4j.core.spec.EmbedCreateSpec;
-import io.netty.util.ResourceLeakDetector;
 import mindustry.Vars;
 import mindustry.game.*;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -230,15 +229,15 @@ public class Commands{
         }
     }
 
-    @DiscordCommand(key = "maps", params = "<server> [page]", description = "debug")
+    @DiscordCommand(key = "maps", params = "<server> [page]", description = "command.maps.description")
     public class MapsCommand implements Command{
         @Override
         public Mono<Void> execute(String[] args, CommandRequest req, CommandResponse res){
-            if(!MessageUtil.canParseId(args[1]) && args.length > 2){
+            if(args.length > 1 && !MessageUtil.canParseId(args[1])){
                 return messageService.err(req.getReplyChannel(), "No u");
             }
 
-            int index = args.length > 2 ? Strings.parseInt(args[1]) : 0;
+            int index = args.length > 1 ? Strings.parseInt(args[1]) : 0;
 
             return send(args, req, index);
         }
@@ -273,7 +272,7 @@ public class Commands{
                 spec.setColor(normalColor);
                 spec.setImage("attachment://" + image.name());
                 spec.setTitle(map.name.orElse(file.nameWithoutExtension()));
-                spec.setDescription(messageService.format("command.maps.description", args[0], index, fiSeq.size));
+                spec.setDescription(messageService.format("command.maps.embed.description", args[0], index, fiSeq.size));
                 map.description.ifPresent(description -> spec.setFooter(MessageUtil.trimTo(description, Embed.Footer.MAX_TEXT_LENGTH), null));
             };
 
