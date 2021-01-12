@@ -247,12 +247,12 @@ public class Commands{
             Mono<MessageChannel> channel = req.getReplyChannel();
             String path = config.serversMapDirs.get(args[0]);
             if(path == null){
-                return messageService.err(channel, "Not found");
+                return messageService.err(channel, messageService.get("command.maps.not-found-server"));
             }
 
             Seq<Fi> fiSeq = Fi.get(path).findAll(f -> f.extension().equals("msav"));
             if(index > fiSeq.size){
-                return messageService.err(channel, "Oh no!");
+                return messageService.err(channel, messageService.get("command.maps.index-of-bound"));
             }
 
             Fi file = fiSeq.get(index);
