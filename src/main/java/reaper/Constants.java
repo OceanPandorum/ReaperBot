@@ -17,9 +17,9 @@ public final class Constants{
     public static Snowflake ownerId;
 
     public static Fi configFile = Fi.get("prefs.json");
-    public static Fi cacheDir;
-    public static Fi schemeDir;
-    public static Fi mapDir;
+    public static Fi cacheDir = new Fi("cache/");
+    public static Fi schemeDir = cacheDir.child("schem/");
+    public static Fi mapDir = cacheDir.child("map/");
 
     public static ContentHandler contentHandler;
     public static ReactionListener reactionListener;
@@ -31,5 +31,8 @@ public final class Constants{
         }else{
             config = gson.fromJson(configFile.reader(), Config.class);
         }
+
+        schemeDir.mkdirs();
+        mapDir.mkdirs();
     }
 }

@@ -11,6 +11,7 @@ import discord4j.core.object.entity.*;
 import discord4j.core.object.entity.channel.*;
 import discord4j.core.object.reaction.ReactionEmoji;
 import discord4j.core.spec.EmbedCreateSpec;
+import io.netty.util.ResourceLeakDetector;
 import mindustry.Vars;
 import mindustry.game.*;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -233,17 +234,22 @@ public class Commands{
     public class MapsCommand implements Command{
         @Override
         public Mono<Void> execute(String[] args, CommandRequest req, CommandResponse res){
+            if(!Strings.canParseInt(args[1]) && args.length > 2){
+                return messageService.err(req.getReplyChannel(), "No u");
+            }
+
+            int index = args.length > 2 ? Strings.parseInt(args[1]) : 0;
+
+            return send(args, req, index);
+        }
+
+        private Mono<Void> send(String[] args, CommandRequest req, int index){
             Mono<MessageChannel> channel = req.getReplyChannel();
             String path = config.serversMapDirs.get(args[0]);
             if(path == null){
                 return messageService.err(channel, "Not found");
             }
 
-            if(!Strings.canParseInt(args[1]) && args.length > 2){
-                return messageService.err(channel, "No u");
-            }
-
-            int index = Strings.parseInt(args[1]);
             Seq<Fi> fiSeq = Fi.get(path).findAll(f -> f.extension().equals("msav"));
             if(index > fiSeq.size){
                 return messageService.err(channel, "Oh no!");
@@ -281,21 +287,19 @@ public class Commands{
 
                             return unicode.map(u -> {
                                 int i = all.indexOf(u.getRaw());
-                                log.info("index(add): {}", i);
                                 if(i == -1){
                                     return false;
                                 }
 
-                                if(i == 0){ // назад
-                                    log.info("left");
-                                    return false;
-                                }else if(i == 2){ // вперёд
-                                    log.info("next");
-                                    return false;
+                                if(i == 0){
+                                    send(args, req, index - 1).block();
+                                }else if(i == 2){
+                                    send(args, req, index + 1).block();
                                 }else{
                                     channel.flatMap(c -> c.createMessage(spec -> spec.addFile(file.name(), file.read()))).block();
-                                    return true;
                                 }
+
+                                return true;
                             }).orElse(false);
                         });
                     })

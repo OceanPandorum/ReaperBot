@@ -16,6 +16,7 @@ import discord4j.discordjson.json.*;
 import discord4j.gateway.intent.*;
 import discord4j.rest.response.ResponseFunction;
 import discord4j.rest.util.Permission;
+import io.netty.util.ResourceLeakDetector;
 import org.reactivestreams.Publisher;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.CommandLineRunner;
@@ -53,19 +54,7 @@ public class Listener extends ReactiveEventAdapter implements CommandLineRunner{
     public static String[] swears;
 
     public Listener(){
-        configFile = Fi.get("prefs.json");
-        if(!configFile.exists()){
-            config = new Config();
-            configFile.writeString(gson.toJson(config));
-        }
-        config = gson.fromJson(configFile.reader(), Config.class);
-
-        cacheDir = new Fi("cache/");
-        schemeDir = cacheDir.child("schem/");
-        mapDir = cacheDir.child("map/");
-
-        schemeDir.mkdirs();
-        mapDir.mkdirs();
+        ResourceLeakDetector.setLevel(ResourceLeakDetector.Level.DISABLED);
     }
 
     @PostConstruct
