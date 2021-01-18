@@ -10,7 +10,7 @@ import discord4j.core.object.Embed;
 import discord4j.core.object.entity.*;
 import discord4j.core.object.entity.channel.*;
 import discord4j.core.object.reaction.ReactionEmoji;
-import discord4j.core.spec.EmbedCreateSpec;
+import discord4j.core.spec.*;
 import mindustry.Vars;
 import mindustry.game.*;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -18,7 +18,7 @@ import org.springframework.stereotype.Service;
 import reactor.core.publisher.*;
 import reactor.core.scheduler.Schedulers;
 import reactor.util.*;
-import reaper.ContentHandler;
+import reaper.*;
 import reaper.event.Listener;
 import reaper.service.MessageService;
 import reaper.util.*;
@@ -45,7 +45,7 @@ public class Commands{
     @Autowired
     private MessageService messageService;
 
-    private final Timekeeper durkaCooldown = new Timekeeper(5);
+    private final Timekeeper durkaCooldown = new Timekeeper(100);
 
     public Mono<Void> deleteMessages(Message... messages){
         Flux<Message> flux = Flux.just(messages);
@@ -98,7 +98,7 @@ public class Commands{
         }
     }
 
-    @DiscordCommand(key = "вдурку", params = "<@user/id>", description = "command.vdurky.description")
+    // @DiscordCommand(key = "вдурку", params = "<@user/id>", description = "command.vdurky.description")
     public class VdurkyCommand implements Command{
         @Override
         public Mono<Void> execute(String[] args, CommandRequest req, CommandResponse res){
@@ -304,6 +304,64 @@ public class Commands{
                         });
                     })
                     .then();
+        }
+    }
+
+    //экспериментально
+    // @DiscordCommand(key = "lconvert", params = "[forward/default] [buffer-size] [multiplier]", description = "command.lconvert.description")
+    public class LConvertCommand implements Command{
+        @Override
+        public Mono<Void> execute(String[] args, CommandRequest req, CommandResponse res){
+            Message message = req.getMessage();
+
+            if(message.getAttachments().isEmpty()){
+                return req.getReplyChannel().flatMap(channel -> channel.createEmbed(spec -> spec.setColor(errorColor)
+                        .setTitle(messageService.get("common.error"))
+                        .setDescription(messageService.get("command.lconvert.empty-attachments"))))
+                        .flatMap(self -> deleteMessages(self, message));
+            }
+
+            if(args.length > 2 && !MessageUtil.canParseInt(args[2])){
+                return req.getReplyChannel().flatMap(channel -> channel.createEmbed(spec -> spec.setColor(errorColor)
+                        .setTitle(messageService.get("common.error"))
+                        .setDescription(messageService.get("command.lconvert.buffer-size-not-int"))))
+                        .flatMap(self -> deleteMessages(self, message));
+            }
+
+            if(args.length > 3 && !MessageUtil.canParseInt(args[3])){
+                return req.getReplyChannel().flatMap(channel -> channel.createEmbed(spec -> spec.setColor(errorColor)
+                        .setTitle(messageService.get("common.error"))
+                        .setDescription(messageService.get("command.lconvert.multiplier-not-int"))))
+                        .flatMap(self -> deleteMessages(self, message));
+            }
+
+            Attachment attachment = message.getAttachments().stream().findFirst().orElseThrow(RuntimeException::new);
+
+            boolean forward = args.length > 1 && args[1].toLowerCase().equals("forward");
+
+            int bufferSize = args.length > 2 ? Strings.parseInt(args[2]) : 256;
+
+            int multiplier = args.length > 3 ? Strings.parseInt(args[3]) : 1;
+
+            BufferedImage image = null;
+            try{
+                image = ImageIO.read(Net.download(attachment.getUrl()));
+            }catch(IOException e){
+                Log.err(e);
+            }
+            LContentHandler.HandlerSpec handlerSpec = new LContentHandler.HandlerSpec(image, bufferSize, multiplier, forward);
+
+            Fi f = lcontentHandler.convert(handlerSpec);
+            Objects.requireNonNull(f);
+
+            Consumer<MessageCreateSpec> messageSpec = spec -> {
+                if(f.length() > 32767){
+                    spec.setContent(messageService.get("command.lconvert.length-warn"));
+                }
+                spec.addFile(f.name(), f.read());
+            };
+
+            return res.sendMessage(messageSpec);
         }
     }
 }

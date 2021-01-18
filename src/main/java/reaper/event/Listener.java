@@ -60,6 +60,7 @@ public class Listener extends ReactiveEventAdapter implements CommandLineRunner{
     @PostConstruct
     public void init(){
         contentHandler = new ContentHandler();
+        lcontentHandler = new LContentHandler();
 
         Core.net = new arc.Net();
 
