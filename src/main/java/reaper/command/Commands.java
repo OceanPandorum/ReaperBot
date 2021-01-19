@@ -246,11 +246,11 @@ public class Commands{
             Mono<MessageChannel> channel = req.getReplyChannel();
             String path = config.serversMapDirs.get(args[0]);
             if(path == null){
-                return messageService.err(channel, messageService.get("command.maps.not-found-server"));
+                return messageService.err(channel, messageService.format("command.maps.not-found-server", Strings.join(", ", config.serversMapDirs.keySet())));
             }
 
             Seq<Fi> fiSeq = Fi.get(path).findAll(f -> f.extension().equals("msav"));
-            if(index > fiSeq.size){
+            if(index > fiSeq.size || index < 0){
                 return messageService.err(channel, messageService.get("command.maps.index-of-bound"));
             }
 

@@ -28,6 +28,12 @@ public class ReactionListener extends ReactiveEventAdapter{
                 addListeners.remove(event.getMessageId());
             }
         }
+        Func2<ReactionAddEvent, ReactionRemoveEvent, Boolean> handler = listeners.get(event.getMessageId());
+        if(handler != null){
+            if(Boolean.TRUE.equals(handler.get(event, null))){
+                listeners.remove(event.getMessageId());
+            }
+        }
         return Mono.empty();
     }
 
@@ -47,9 +53,9 @@ public class ReactionListener extends ReactiveEventAdapter{
         return Mono.fromRunnable(() -> unsubscribe(event.getMessageId()));
     }
 
-    @Scheduled(fixedRate = EXPIRE_TIME)
+    @Scheduled(fixedDelay = EXPIRE_TIME)
     public void monitor(){
-        Seq.with(messageTtl.entries()).each(e -> Time.timeSinceMillis(e.value) > EXPIRE_TIME, e -> unsubscribe(e.key));
+        Seq.with(messageTtl.entries()).each(e -> Time.timeSinceMillis(e.value) >= EXPIRE_TIME, e -> unsubscribe(e.key));
     }
 
     public void onReactionAdd(Snowflake message, Func<ReactionAddEvent, Boolean> handler){

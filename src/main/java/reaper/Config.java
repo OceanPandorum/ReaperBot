@@ -18,6 +18,7 @@ public class Config{
     public Map<String, String> serversMapDirs = Map.of(
             "survival", "/home/servers/as/config/maps",
             "attack", "/home/servers/as/config/maps",
+            "msgo", "/home/servers/mind-go/config/maps",
             "pvp", "/home/servers/pvp/config/maps"
     );
 
@@ -32,8 +33,4 @@ public class Config{
     public Set<Snowflake> listenedMessages = Collections.emptySet();
 
     public List<InfoEmbed> info = Collections.emptyList();
-
-    public void update(){
-        configFile.writeString(gson.toJson(this));
-    }
 }

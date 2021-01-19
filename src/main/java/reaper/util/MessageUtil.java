@@ -2,7 +2,6 @@ package reaper.util;
 
 import arc.util.Strings;
 import discord4j.common.util.Snowflake;
-import reactor.util.annotation.NonNull;
 
 import java.util.Objects;
 
@@ -28,7 +27,8 @@ public abstract class MessageUtil{
         }
     }
 
-    public static Snowflake parseUserId(@NonNull String message){
+    public static Snowflake parseUserId(String message){
+        Objects.requireNonNull(message, "message");
         message = message.replaceAll("[<>@!]", "");
         return canParseId(message) ? Snowflake.of(message) : null;
     }

@@ -1,6 +1,5 @@
 package reaper.event;
 
-import arc.Core;
 import arc.files.Fi;
 import arc.struct.*;
 import arc.util.*;
@@ -16,6 +15,7 @@ import discord4j.discordjson.json.*;
 import discord4j.gateway.intent.*;
 import discord4j.rest.response.ResponseFunction;
 import discord4j.rest.util.Permission;
+import discord4j.store.api.util.Lazy;
 import io.netty.util.ResourceLeakDetector;
 import org.reactivestreams.Publisher;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -27,7 +27,6 @@ import reaper.service.MessageService;
 
 import javax.annotation.*;
 import java.util.*;
-import java.util.function.Supplier;
 
 import static arc.Files.FileType.classpath;
 import static reaper.Constants.*;
@@ -45,15 +44,16 @@ public class Listener extends ReactiveEventAdapter implements CommandLineRunner{
     protected GatewayDiscordClient gateway;
 
     private Seq<Snowflake> roleMessages;
-    private final Supplier<boolean[]> all = () -> {
+    private final Lazy<boolean[]> all = new Lazy<>(() -> {
         boolean[] booleans = new boolean[roleMessages.size];
         Arrays.fill(booleans, true);
         return booleans;
-    };
+    });
 
     public static String[] swears;
 
     public Listener(){
+        // из-за гиганских стак трейсов о утечке озу, которые я пока не понял как решать
         ResourceLeakDetector.setLevel(ResourceLeakDetector.Level.DISABLED);
     }
 
@@ -62,13 +62,14 @@ public class Listener extends ReactiveEventAdapter implements CommandLineRunner{
         contentHandler = new ContentHandler();
         lcontentHandler = new LContentHandler();
 
-        Core.net = new arc.Net();
-
         roleMessages = Seq.with(config.listenedMessages);
-        lateInitialize();
+        swears = new Fi("great_russian_language.txt", classpath)
+                .readString("UTF-8")
+                .toLowerCase()
+                .split("\n");
 
         gateway = DiscordClientBuilder
-                .create(Objects.requireNonNull(config.token))
+                .create(Objects.requireNonNull(config.token, "token"))
                 .onClientResponse(ResponseFunction.emptyIfNotFound())
                 .build()
                 .gateway()
@@ -91,39 +92,6 @@ public class Listener extends ReactiveEventAdapter implements CommandLineRunner{
                          .map(ApplicationInfoData::owner)
                          .map(o -> Snowflake.of(o.id()))
                          .block();
-    }
-
-    private void lateInitialize(){
-        swears = new Fi("great_russian_language.txt", classpath)
-                .readString("UTF-8")
-                .replaceAll("\n", "")
-                .split(", ");
-        config.update();
-    }
-
-    private void sendInfo(int index){
-        try{
-            roleMessages = Seq.with(config.listenedMessages);
-            InfoEmbed i = config.info.get(index - 1);
-            if(i == null){
-                Log.err("Info embed with index '@' not found", index);
-                return;
-            }
-
-            Snowflake messageId = gateway.getChannelById(i.channelId)
-                    .cast(TextChannel.class)
-                    .flatMap(c -> c.createEmbed(e -> e.setColor(MessageService.normalColor)
-                            .setTitle(i.title).setDescription(i.description)))
-                    .map(Message::getId)
-                    .block();
-
-            if(i.listenable && messageId != null){
-                config.listenedMessages.add(messageId);
-            }
-            lateInitialize();
-        }catch(Throwable t){
-            throw new RuntimeException(t);
-        }
     }
 
     @PreDestroy
@@ -167,7 +135,7 @@ public class Listener extends ReactiveEventAdapter implements CommandLineRunner{
                 .cast(TextChannel.class)
                 .flatMap(channel -> {
                     if(!isAdmin(member)){
-                        if(Structs.contains(swears, text::equalsIgnoreCase)){
+                        if(Structs.contains(swears, s -> text.equalsIgnoreCase(s) || text.equalsIgnoreCase(new StringBuffer(s).reverse().toString()))){
                             return message.delete();
                         }
                     }
@@ -192,7 +160,28 @@ public class Listener extends ReactiveEventAdapter implements CommandLineRunner{
     @Override
     public void run(String... args) throws Exception{
         if(args.length > 0 && args[0].equals("--info")){
-            sendInfo(Strings.parseInt(args[1]));
+            int index = Strings.parseInt(args[1]);
+            try{
+                roleMessages = Seq.with(config.listenedMessages);
+                InfoEmbed i = config.info.get(index - 1);
+                if(i == null){
+                    Log.err("Info embed with index '@' not found", index);
+                    return;
+                }
+
+                Snowflake messageId = gateway.getChannelById(i.channelId)
+                        .cast(TextChannel.class)
+                        .flatMap(c -> c.createEmbed(e -> e.setColor(MessageService.normalColor)
+                                .setTitle(i.title).setDescription(i.description)))
+                        .map(Message::getId)
+                        .block();
+
+                if(i.listenable && messageId != null){
+                    config.listenedMessages.add(messageId);
+                }
+            }catch(Throwable t){
+                throw new RuntimeException(t);
+            }
         }
     }
 }
