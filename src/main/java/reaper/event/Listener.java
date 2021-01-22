@@ -1,7 +1,7 @@
 package reaper.event;
 
 import arc.files.Fi;
-import arc.struct.*;
+import arc.struct.Seq;
 import arc.util.*;
 import discord4j.common.util.Snowflake;
 import discord4j.core.*;
@@ -28,7 +28,6 @@ import reaper.service.MessageService;
 
 import javax.annotation.*;
 import java.util.*;
-import java.util.concurrent.*;
 
 import static arc.Files.FileType.classpath;
 import static reaper.Constants.*;
@@ -122,7 +121,6 @@ public class Listener extends ReactiveEventAdapter implements CommandLineRunner{
                 }
             }
             Snowflake userId = event.getUserId();
-            validation.put(userId, b);
             if(Arrays.equals(b, all.get())){
                 return member.addRole(config.memberRoleId).then(Mono.fromRunnable(() -> validation.remove(userId)));
             }
@@ -139,7 +137,7 @@ public class Listener extends ReactiveEventAdapter implements CommandLineRunner{
                 .cast(TextChannel.class)
                 .flatMap(channel -> {
                     if(!isAdmin(member)){
-                        if(Structs.contains(swears, s -> text.equalsIgnoreCase(s) || text.equalsIgnoreCase(new StringBuffer(s).reverse().toString()))){
+                        if(Structs.contains(swears, s -> text.equalsIgnoreCase(s) || text.equalsIgnoreCase(new StringBuilder(s).reverse().toString()))){
                             return message.delete();
                         }
                     }
