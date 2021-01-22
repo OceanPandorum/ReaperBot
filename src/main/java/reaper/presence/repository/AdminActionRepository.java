@@ -1,9 +1,9 @@
-package reaper.repository;
+package reaper.presence.repository;
 
 import org.springframework.data.repository.reactive.ReactiveCrudRepository;
 import reactor.core.publisher.*;
-import reaper.AdminActionType;
-import reaper.entity.AdminAction;
+import reaper.presence.AdminActionType;
+import reaper.presence.entity.AdminAction;
 
 public interface AdminActionRepository extends ReactiveCrudRepository<AdminAction, String>{
 

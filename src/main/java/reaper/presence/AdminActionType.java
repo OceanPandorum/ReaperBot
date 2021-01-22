@@ -1,4 +1,4 @@
-package reaper;
+package reaper.presence;
 
 public enum AdminActionType{
     ban,

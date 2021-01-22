@@ -1,4 +1,4 @@
-package reaper.json;
+package reaper.util.json;
 
 import com.google.gson.*;
 import discord4j.common.util.Snowflake;

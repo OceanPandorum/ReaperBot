@@ -1,12 +1,11 @@
-package reaper.entity;
+package reaper.presence.entity;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.relational.core.mapping.*;
-import reaper.AdminActionType;
+import reaper.presence.AdminActionType;
 
 import java.time.*;
-import java.time.temporal.*;
 import java.util.*;
 
 @Table("admin_action")

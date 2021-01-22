@@ -4,8 +4,6 @@ import discord4j.common.util.Snowflake;
 
 import java.util.*;
 
-import static reaper.Constants.*;
-
 public class Config{
 
     public Snowflake commandChannelId = Snowflake.of(744874986073751584L);

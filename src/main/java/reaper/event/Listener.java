@@ -28,6 +28,7 @@ import reaper.service.MessageService;
 
 import javax.annotation.*;
 import java.util.*;
+import java.util.concurrent.*;
 
 import static arc.Files.FileType.classpath;
 import static reaper.Constants.*;
@@ -36,7 +37,7 @@ import static reaper.Constants.*;
 public class Listener extends ReactiveEventAdapter implements CommandLineRunner{
     private static final Logger log = Loggers.getLogger(Listener.class);
 
-    public static final ObjectMap<Snowflake, boolean[]> validation = new ObjectMap<>();
+    public static final Map<Snowflake, boolean[]> validation = Collections.synchronizedMap(new WeakHashMap<>());
 
     @Autowired
     private MessageService bundle;
@@ -114,7 +115,7 @@ public class Listener extends ReactiveEventAdapter implements CommandLineRunner{
     public Publisher<?> onReactionAdd(ReactionAddEvent event){
         Member member = event.getMember().orElse(null);
         if(!roleMessages.isEmpty() && member != null){
-            boolean[] b = validation.get(event.getUserId(), () -> new boolean[roleMessages.size]);
+            boolean[] b = validation.computeIfAbsent(event.getUserId(), k -> new boolean[roleMessages.size]);
             for(int i = 0; i < roleMessages.size; i++){
                 if(roleMessages.get(i).equals(event.getMessageId())){
                     b[i] = true;
