@@ -1,4 +1,4 @@
-package reaper.command;
+package reaper.event.command;
 
 public class CommandInfo{
     public final String text;

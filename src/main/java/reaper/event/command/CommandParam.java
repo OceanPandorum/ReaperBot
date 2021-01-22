@@ -1,4 +1,4 @@
-package reaper.command;
+package reaper.event.command;
 
 public final class CommandParam{
     public final String name;

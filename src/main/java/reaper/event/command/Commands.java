@@ -1,11 +1,10 @@
-package reaper.command;
+package reaper.event.command;
 
 import arc.files.Fi;
 import arc.func.Cons2;
 import arc.struct.Seq;
 import arc.util.*;
 import arc.util.io.Streams;
-import discord4j.common.util.Snowflake;
 import discord4j.core.object.Embed;
 import discord4j.core.object.entity.*;
 import discord4j.core.object.entity.channel.*;
@@ -44,8 +43,6 @@ public class Commands{
 
     @Autowired
     private MessageService messageService;
-
-    private final Timekeeper durkaCooldown = new Timekeeper(100);
 
     public Mono<Void> deleteMessages(Message... messages){
         Flux<Message> flux = Flux.just(messages);
@@ -95,30 +92,6 @@ public class Commands{
             builder.append(messageService.format("command.status.map-dir-size", mapDir.findAll(f -> f.extension().equals(Vars.mapExtension)).size));
 
             return messageService.info(req.getReplyChannel(), messageService.get("command.status.title"), builder.toString());
-        }
-    }
-
-    // @DiscordCommand(key = "вдурку", params = "<@user/id>", description = "command.vdurky.description")
-    public class VdurkyCommand implements Command{
-        @Override
-        public Mono<Void> execute(String[] args, CommandRequest req, CommandResponse res){
-            if(!durkaCooldown.get()){
-                return req.getReplyChannel().flatMap(channel -> channel.createEmbed(spec -> spec.setColor(errorColor)
-                        .setTitle(messageService.get("common.error"))
-                        .setDescription(messageService.get("command.vdurky.cooldown"))))
-                        .flatMap(self -> deleteMessages(self, req.getMessage()));
-            }
-
-            durkaCooldown.reset();
-            Member member = req.getAuthorAsMember();
-            Snowflake[] targetId = {MessageUtil.parseUserId(args[0])};
-            if(targetId[0] == null){
-                targetId[0] = member.getId();
-            }
-
-            return req.event().getGuild().flatMap(guild -> guild.getMemberById(targetId[0]))
-                    .flatMap(target -> messageService.info(req.getReplyChannel(), messageService.get("command.vdurky.title"),
-                            messageService.format("command.vdurky.text", member.getMention(), target.getMention())));
         }
     }
 
@@ -198,7 +171,7 @@ public class Commands{
                 Attachment attachment = message.getAttachments().stream().findFirst().orElseThrow(RuntimeException::new);
 
                 Fi mapFile = mapDir.child(attachment.getFilename());
-                Streams.copy(Net.download(attachment.getUrl()), mapFile.write());
+                Streams.copy(MessageUtil.download(attachment.getUrl()), mapFile.write());
                 ContentHandler.MapInfo map = contentHandler.readMap(mapFile.read());
                 Fi image = mapDir.child(String.format("img_%s.png", UUID.randomUUID().toString()));
                 ImageIO.write(map.image, "png", image.file());
@@ -207,8 +180,8 @@ public class Commands{
                     spec.setColor(normalColor);
                     spec.setImage("attachment://" + image.name());
                     spec.setAuthor(member.getUsername(), null, member.getAvatarUrl());
-                    spec.setTitle(map.name.orElse(attachment.getFilename().replace(Vars.mapExtension, "")));
-                    map.description.ifPresent(description -> spec.setFooter(MessageUtil.trimTo(description, Embed.Footer.MAX_TEXT_LENGTH), null));
+                    spec.setTitle(map.name().orElse(attachment.getFilename().replace(Vars.mapExtension, "")));
+                    map.description().ifPresent(description -> spec.setFooter(MessageUtil.trimTo(description, Embed.Footer.MAX_TEXT_LENGTH), null));
                 };
 
                 return req.getClient().getChannelById(config.mapsChannelId)
@@ -233,8 +206,8 @@ public class Commands{
     public class MapsCommand implements Command{
         @Override
         public Mono<Void> execute(String[] args, CommandRequest req, CommandResponse res){
-            if(args.length > 1 && !MessageUtil.canParseId(args[1])){
-                return messageService.err(req.getReplyChannel(), "No u");
+            if(args.length > 1 && !MessageUtil.canParseInt(args[1])){
+                return messageService.err(req.getReplyChannel(), "No u"); // todo перевод нормальный
             }
 
             int index = args.length > 1 ? Strings.parseInt(args[1]) : 0;
@@ -271,9 +244,9 @@ public class Commands{
             Consumer<EmbedCreateSpec> embed = spec -> {
                 spec.setColor(normalColor);
                 spec.setImage("attachment://" + image.name());
-                spec.setTitle(map.name.orElse(file.nameWithoutExtension()));
+                spec.setTitle(map.name().orElse(file.nameWithoutExtension()));
                 spec.setDescription(messageService.format("command.maps.embed.description", args[0], index, fiSeq.size));
-                map.description.ifPresent(description -> spec.setFooter(MessageUtil.trimTo(description, Embed.Footer.MAX_TEXT_LENGTH), null));
+                map.description().ifPresent(description -> spec.setFooter(MessageUtil.trimTo(description, Embed.Footer.MAX_TEXT_LENGTH), null));
             };
 
             return channel.flatMap(c -> c.createMessage(spec -> spec.addFile(image.name(), image.read()).setEmbed(embed)))
@@ -345,7 +318,7 @@ public class Commands{
 
             BufferedImage image = null;
             try{
-                image = ImageIO.read(Net.download(attachment.getUrl()));
+                image = ImageIO.read(MessageUtil.download(attachment.getUrl()));
             }catch(IOException e){
                 Log.err(e);
             }

@@ -1,4 +1,4 @@
-package reaper.command;
+package reaper.event.command;
 
 import arc.struct.*;
 import arc.util.Strings;

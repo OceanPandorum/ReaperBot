@@ -1,4 +1,4 @@
-package reaper.command;
+package reaper.event.command;
 
 import discord4j.core.event.domain.message.MessageCreateEvent;
 import discord4j.core.object.entity.User;

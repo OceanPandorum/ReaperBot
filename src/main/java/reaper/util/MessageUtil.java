@@ -3,6 +3,8 @@ package reaper.util;
 import arc.util.Strings;
 import discord4j.common.util.Snowflake;
 
+import java.io.InputStream;
+import java.net.URL;
 import java.util.Objects;
 
 public abstract class MessageUtil{
@@ -31,5 +33,13 @@ public abstract class MessageUtil{
         Objects.requireNonNull(message, "message");
         message = message.replaceAll("[<>@!]", "");
         return canParseId(message) ? Snowflake.of(message) : null;
+    }
+
+    public static InputStream download(String url){
+        try{
+            return new URL(url).openConnection().getInputStream();
+        }catch(Exception e){
+            throw new RuntimeException(e);
+        }
     }
 }

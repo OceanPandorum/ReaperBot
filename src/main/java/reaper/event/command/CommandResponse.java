@@ -1,4 +1,4 @@
-package reaper.command;
+package reaper.event.command;
 
 import discord4j.core.object.entity.channel.MessageChannel;
 import discord4j.core.spec.*;

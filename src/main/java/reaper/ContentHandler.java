@@ -20,7 +20,7 @@ import mindustry.game.*;
 import mindustry.io.*;
 import mindustry.world.*;
 import mindustry.world.blocks.environment.OreBlock;
-import reaper.util.Net;
+import reaper.util.*;
 
 import javax.imageio.ImageIO;
 import java.awt.*;
@@ -166,7 +166,7 @@ public class ContentHandler{
     }
 
     public Schematic parseSchematicURL(String text) throws Exception{
-        return Schematics.read(Net.download(text));
+        return Schematics.read(MessageUtil.download(text));
     }
 
     public BufferedImage previewSchematic(Schematic schem) throws Exception{
@@ -203,9 +203,9 @@ public class ContentHandler{
 
             StringMap meta = metaOut[0];
 
-            out.name = Optional.ofNullable(meta.get("name", "Unknown"));
-            out.author = Optional.ofNullable(meta.get("author"));
-            out.description = Optional.ofNullable(meta.get("description"));
+            out.name = meta.get("name", "Unknown");
+            out.author = meta.get("author");
+            out.description = meta.get("description");
             out.tags = meta;
 
             int width = meta.getInt("width"), height = meta.getInt("height");
@@ -297,11 +297,23 @@ public class ContentHandler{
     }
 
     public static class MapInfo{
-        public Optional<String> name;
-        public Optional<String> author;
-        public Optional<String> description;
+        private String name;
+        private String author;
+        private String description;
         public StringMap tags = new StringMap();
         public BufferedImage image;
+
+        public Optional<String> name(){
+            return Optional.ofNullable(name);
+        }
+
+        public Optional<String> author(){
+            return Optional.ofNullable(author);
+        }
+
+        public Optional<String> description(){
+            return Optional.ofNullable(description);
+        }
     }
 
     static class ImageData implements TextureData{

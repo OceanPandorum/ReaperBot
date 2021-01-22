@@ -22,6 +22,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.stereotype.Component;
 import reactor.core.publisher.Mono;
+import reactor.util.*;
 import reaper.*;
 import reaper.service.MessageService;
 
@@ -33,13 +34,15 @@ import static reaper.Constants.*;
 
 @Component
 public class Listener extends ReactiveEventAdapter implements CommandLineRunner{
+    private static final Logger log = Loggers.getLogger(Listener.class);
+
     public static final ObjectMap<Snowflake, boolean[]> validation = new ObjectMap<>();
 
     @Autowired
     private MessageService bundle;
 
     @Autowired
-    private reaper.command.CommandHandler handler;
+    private reaper.event.command.CommandHandler handler;
 
     protected GatewayDiscordClient gateway;
 
@@ -165,20 +168,21 @@ public class Listener extends ReactiveEventAdapter implements CommandLineRunner{
                 roleMessages = Seq.with(config.listenedMessages);
                 InfoEmbed i = config.info.get(index - 1);
                 if(i == null){
-                    Log.err("Info embed with index '@' not found", index);
+                    log.error("Info embed with index '{}' not found", index);
                     return;
                 }
 
-                Snowflake messageId = gateway.getChannelById(i.channelId)
+                gateway.getChannelById(i.channelId)
                         .cast(TextChannel.class)
                         .flatMap(c -> c.createEmbed(e -> e.setColor(MessageService.normalColor)
                                 .setTitle(i.title).setDescription(i.description)))
                         .map(Message::getId)
+                        .doOnNext(signal -> {
+                            if(i.listenable){
+                                config.listenedMessages.add(signal);
+                            }
+                        })
                         .block();
-
-                if(i.listenable && messageId != null){
-                    config.listenedMessages.add(messageId);
-                }
             }catch(Throwable t){
                 throw new RuntimeException(t);
             }

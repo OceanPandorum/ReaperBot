@@ -1,8 +1,8 @@
 package reaper.event;
 
 import arc.func.*;
-import arc.struct.*;
-import arc.util.*;
+import arc.struct.Seq;
+import arc.util.Time;
 import discord4j.common.util.Snowflake;
 import discord4j.core.event.ReactiveEventAdapter;
 import discord4j.core.event.domain.message.*;
@@ -11,14 +11,16 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 import reactor.core.publisher.Mono;
 
+import java.util.concurrent.ConcurrentHashMap;
+
 @Component
 public class ReactionListener extends ReactiveEventAdapter{
     public static final long EXPIRE_TIME = 30000;
     public static final Seq<String> all = Seq.with("⬅", "⏺", "➡️");
 
-    public static ObjectMap<Snowflake, Func<ReactionAddEvent, Boolean>> addListeners = new ObjectMap<>();
-    public static ObjectMap<Snowflake, Func2<ReactionAddEvent, ReactionRemoveEvent, Boolean>> listeners = new ObjectMap<>();
-    public static ObjectMap<Snowflake, Long> messageTtl = new ObjectMap<>();
+    public static ConcurrentHashMap<Snowflake, Func<ReactionAddEvent, Boolean>> addListeners = new ConcurrentHashMap<>();
+    public static ConcurrentHashMap<Snowflake, Func2<ReactionAddEvent, ReactionRemoveEvent, Boolean>> listeners = new ConcurrentHashMap<>();
+    public static ConcurrentHashMap<Snowflake, Long> messageTtl = new ConcurrentHashMap<>();
 
     @Override
     public Publisher<?> onReactionAdd(ReactionAddEvent event){
@@ -55,7 +57,7 @@ public class ReactionListener extends ReactiveEventAdapter{
 
     @Scheduled(fixedDelay = EXPIRE_TIME)
     public void monitor(){
-        Seq.with(messageTtl.entries()).each(e -> Time.timeSinceMillis(e.value) >= EXPIRE_TIME, e -> unsubscribe(e.key));
+        Seq.with(messageTtl.entrySet()).each(e -> Time.timeSinceMillis(e.getValue()) >= EXPIRE_TIME, e -> unsubscribe(e.getKey()));
     }
 
     public void onReactionAdd(Snowflake message, Func<ReactionAddEvent, Boolean> handler){
