@@ -11,7 +11,7 @@ public class CommandInfo{
         this.paramText = paramText;
         this.description = description;
 
-        String[] psplit = paramText.split("\\s+");
+        String[] psplit = paramText.split("\\w+");
         if(paramText.length() == 0){
             params = new CommandParam[0];
         }else{

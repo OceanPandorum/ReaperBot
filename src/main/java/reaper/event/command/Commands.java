@@ -62,7 +62,7 @@ public class Commands{
                 builder.append("**");
                 if(command.params.length > 0){
                     builder.append(" *");
-                    builder.append(command.paramText);
+                    builder.append(messageService.get(command.paramText));
                     builder.append("*");
                 }
                 builder.append(" - ");
@@ -97,7 +97,7 @@ public class Commands{
         }
     }
 
-    @DiscordCommand(key = "postschem", params = "[schem]", description = "command.postschem.description")
+    @DiscordCommand(key = "postschem", params = "command.postmap.params", description = "command.postschem.description")
     public class PostschemCommand implements Command{
         @Override
         public Mono<Void> execute(String[] args, CommandRequest req, CommandResponse res){
@@ -214,7 +214,7 @@ public class Commands{
         }
     }
 
-    @DiscordCommand(key = "maps", params = "<server> [page]", description = "command.maps.description")
+    @DiscordCommand(key = "maps", params = "command.maps.params", description = "command.maps.description")
     public class MapsCommand implements Command{
         @Override
         public Mono<Void> execute(String[] args, CommandRequest req, CommandResponse res){
