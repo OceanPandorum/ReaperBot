@@ -118,7 +118,7 @@ public class Listener extends ReactiveEventAdapter implements CommandLineRunner{
                 .flatMap(message -> message.getAuthorAsMember().flatMap(member -> {
                     String text = event.getCurrentContent().map(String::toLowerCase).orElse("");
 
-                    return isAdmin(member).flatMap(b -> !b && Structs.contains(swears, s -> Structs.contains(text.split("\\s+"), t -> t.matches(s))) ? message.delete() : Mono.empty());
+                    return isAdmin(member).flatMap(b -> !b && Structs.contains(swears, s -> Structs.contains(text.split("\\w+"), t -> t.matches(s))) ? message.delete() : Mono.empty());
                 }));
     }
 
