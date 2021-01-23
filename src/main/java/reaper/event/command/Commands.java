@@ -280,7 +280,7 @@ public class Commands{
         }
     }
 
-    //экспериментально
+    // экспериментально
     // @DiscordCommand(key = "lconvert", params = "[forward/default] [buffer-size] [multiplier]", description = "command.lconvert.description")
     public class LConvertCommand implements Command{
         @Override

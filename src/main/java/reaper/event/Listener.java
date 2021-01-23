@@ -125,7 +125,7 @@ public class Listener extends ReactiveEventAdapter implements CommandLineRunner{
     @Override
     public Publisher<?> onReactionAdd(ReactionAddEvent event){
         Member member = event.getMember().orElse(null);
-        if(!roleMessages.isEmpty() && member != null){
+        if(roleMessages.any() && member != null){
             boolean[] b = validation.computeIfAbsent(event.getUserId(), k -> new boolean[roleMessages.size]);
             for(int i = 0; i < roleMessages.size; i++){
                 if(roleMessages.get(i).equals(event.getMessageId())){
