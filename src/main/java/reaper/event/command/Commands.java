@@ -28,6 +28,7 @@ import java.io.IOException;
 import java.lang.management.*;
 import java.time.Duration;
 import java.util.*;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
 
 import static reaper.Constants.*;
@@ -159,8 +160,9 @@ public class Commands{
         public Mono<Void> execute(String[] args, CommandRequest req, CommandResponse res){
             Message message = req.getMessage();
             Member member = req.getAuthorAsMember();
+            Seq<Attachment> attachments = Seq.with(message.getAttachments());
 
-            if(message.getAttachments().size() != 1 || message.getAttachments().stream().findFirst().map(a -> !a.getFilename().endsWith(Vars.mapExtension)).orElse(true)){
+            if(attachments.size != 1 || !attachments.first().getFilename().endsWith(Vars.mapExtension)){
                 return req.getReplyChannel().flatMap(channel -> channel.createEmbed(spec -> spec.setColor(errorColor)
                         .setTitle(messageService.get("common.error"))
                         .setDescription(messageService.get("command.postmap.empty-attachments"))))
@@ -168,26 +170,32 @@ public class Commands{
             }
 
             try{
-                Attachment attachment = message.getAttachments().stream().findFirst().orElseThrow(RuntimeException::new);
+                Attachment attachment = attachments.first();
 
                 Fi mapFile = mapDir.child(attachment.getFilename());
-                Streams.copy(MessageUtil.download(attachment.getUrl()), mapFile.write());
-                ContentHandler.MapInfo map = contentHandler.readMap(mapFile.read());
                 Fi image = mapDir.child(String.format("img_%s.png", UUID.randomUUID().toString()));
-                ImageIO.write(map.image, "png", image.file());
+                Mono<Consumer<EmbedCreateSpec>> map = Mono.defer(() -> {
+                    Mono<ContentHandler.MapInfo> pre = Mono.fromCallable(() ->{
+                        Streams.copy(MessageUtil.download(attachment.getUrl()), mapFile.write());
+                        ContentHandler.MapInfo mapInfo = contentHandler.readMap(mapFile.read());
+                        ImageIO.write(mapInfo.image, "png", image.file());
+                        return mapInfo;
+                    });
 
-                Consumer<EmbedCreateSpec> embed = spec -> {
-                    spec.setColor(normalColor);
-                    spec.setImage("attachment://" + image.name());
-                    spec.setAuthor(member.getUsername(), null, member.getAvatarUrl());
-                    spec.setTitle(map.name().orElse(attachment.getFilename().replace(Vars.mapExtension, "")));
-                    map.description().filter(s -> !s.isEmpty()).ifPresent(description -> spec.setFooter(MessageUtil.trimTo(description, Embed.Footer.MAX_TEXT_LENGTH), null));
-                };
+                    return pre.map(info -> spec -> {
+                        spec.setColor(normalColor);
+                        spec.setImage("attachment://" + image.name());
+                        spec.setAuthor(member.getUsername(), null, member.getAvatarUrl());
+                        spec.setTitle(info.name().orElse(attachment.getFilename().replace(Vars.mapExtension, "")));
+                        info.description().filter(s -> !s.isEmpty()).ifPresent(description -> spec.setFooter(MessageUtil.trimTo(description, Embed.Footer.MAX_TEXT_LENGTH), null));
+                    });
+                });
 
                 return req.getClient().getChannelById(config.mapsChannelId)
                         .publishOn(Schedulers.boundedElastic())
                         .cast(TextChannel.class)
-                        .flatMap(c -> c.createMessage(m -> m.addFile(image.name(), image.read()).setEmbed(embed)
+                        .zipWith(map)
+                        .flatMap(c -> c.getT1().createMessage(m -> m.addFile(image.name(), image.read()).setEmbed(c.getT2())
                                 .addFile(mapFile.name(), mapFile.read())))
                         .then(message.addReaction(success));
             }catch(Exception e){
@@ -282,59 +290,54 @@ public class Commands{
 
     // экспериментально
     // @DiscordCommand(key = "lconvert", params = "[forward/default] [buffer-size] [multiplier]", description = "command.lconvert.description")
-    public class LConvertCommand implements Command{
-        @Override
-        public Mono<Void> execute(String[] args, CommandRequest req, CommandResponse res){
-            Message message = req.getMessage();
-
-            if(message.getAttachments().isEmpty()){
-                return req.getReplyChannel().flatMap(channel -> channel.createEmbed(spec -> spec.setColor(errorColor)
-                        .setTitle(messageService.get("common.error"))
-                        .setDescription(messageService.get("command.lconvert.empty-attachments"))))
-                        .flatMap(self -> deleteMessages(self, message));
-            }
-
-            if(args.length > 2 && !MessageUtil.canParseInt(args[2])){
-                return req.getReplyChannel().flatMap(channel -> channel.createEmbed(spec -> spec.setColor(errorColor)
-                        .setTitle(messageService.get("common.error"))
-                        .setDescription(messageService.get("command.lconvert.buffer-size-not-int"))))
-                        .flatMap(self -> deleteMessages(self, message));
-            }
-
-            if(args.length > 3 && !MessageUtil.canParseInt(args[3])){
-                return req.getReplyChannel().flatMap(channel -> channel.createEmbed(spec -> spec.setColor(errorColor)
-                        .setTitle(messageService.get("common.error"))
-                        .setDescription(messageService.get("command.lconvert.multiplier-not-int"))))
-                        .flatMap(self -> deleteMessages(self, message));
-            }
-
-            Attachment attachment = message.getAttachments().stream().findFirst().orElseThrow(RuntimeException::new);
-
-            boolean forward = args.length > 1 && args[1].toLowerCase().equals("forward");
-
-            int bufferSize = args.length > 2 ? Strings.parseInt(args[2]) : 256;
-
-            int multiplier = args.length > 3 ? Strings.parseInt(args[3]) : 1;
-
-            BufferedImage image = null;
-            try{
-                image = ImageIO.read(MessageUtil.download(attachment.getUrl()));
-            }catch(IOException e){
-                Log.err(e);
-            }
-            LContentHandler.HandlerSpec handlerSpec = new LContentHandler.HandlerSpec(image, bufferSize, multiplier, forward);
-
-            Fi f = lcontentHandler.convert(handlerSpec);
-            Objects.requireNonNull(f);
-
-            Consumer<MessageCreateSpec> messageSpec = spec -> {
-                if(f.length() > 32767){
-                    spec.setContent(messageService.get("command.lconvert.length-warn"));
-                }
-                spec.addFile(f.name(), f.read());
-            };
-
-            return res.sendMessage(messageSpec);
-        }
-    }
+    // public class LConvertCommand implements Command{
+    //     @Override
+    //     public Mono<Void> execute(String[] args, CommandRequest req, CommandResponse res){
+    //         Message message = req.getMessage();
+    //
+    //         if(message.getAttachments().isEmpty()){
+    //             return req.getReplyChannel().flatMap(channel -> channel.createEmbed(spec -> spec.setColor(errorColor)
+    //                     .setTitle(messageService.get("common.error"))
+    //                     .setDescription(messageService.get("command.lconvert.empty-attachments"))))
+    //                     .flatMap(self -> deleteMessages(self, message));
+    //         }
+    //
+    //         if(args.length > 2 && !MessageUtil.canParseInt(args[2])){
+    //             return req.getReplyChannel().flatMap(channel -> channel.createEmbed(spec -> spec.setColor(errorColor)
+    //                     .setTitle(messageService.get("common.error"))
+    //                     .setDescription(messageService.get("command.lconvert.buffer-size-not-int"))))
+    //                     .flatMap(self -> deleteMessages(self, message));
+    //         }
+    //
+    //         if(args.length > 3 && !MessageUtil.canParseInt(args[3])){
+    //             return req.getReplyChannel().flatMap(channel -> channel.createEmbed(spec -> spec.setColor(errorColor)
+    //                     .setTitle(messageService.get("common.error"))
+    //                     .setDescription(messageService.get("command.lconvert.multiplier-not-int"))))
+    //                     .flatMap(self -> deleteMessages(self, message));
+    //         }
+    //
+    //         Attachment attachment = message.getAttachments().stream().findFirst().orElseThrow(RuntimeException::new);
+    //
+    //         boolean forward = args.length > 1 && args[1].toLowerCase().equals("forward");
+    //
+    //         int bufferSize = args.length > 2 ? Strings.parseInt(args[2]) : 256;
+    //
+    //         int multiplier = args.length > 3 ? Strings.parseInt(args[3]) : 1;
+    //
+    //         Mono<BufferedImage> image = Mono.fromCallable(() -> ImageIO.read(MessageUtil.download(attachment.getUrl())));
+    //         LContentHandler.HandlerSpec handlerSpec = new LContentHandler.HandlerSpec(image, bufferSize, multiplier, forward);
+    //
+    //         Fi f = lcontentHandler.convert(handlerSpec);
+    //         Objects.requireNonNull(f);
+    //
+    //         Consumer<MessageCreateSpec> messageSpec = spec -> {
+    //             if(f.length() > 32767){
+    //                 spec.setContent(messageService.get("command.lconvert.length-warn"));
+    //             }
+    //             spec.addFile(f.name(), f.read());
+    //         };
+    //
+    //         return res.sendMessage(messageSpec);
+    //     }
+    // }
 }
