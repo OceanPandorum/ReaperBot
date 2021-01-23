@@ -156,13 +156,8 @@ public class Listener extends ReactiveEventAdapter implements CommandLineRunner{
     }
 
     public Mono<Boolean> isAdmin(Member member){
-        return Mono.fromCallable(() -> {
-            boolean admin = member.getRoles()
-                    .any(r -> config.adminRoleId.equals(r.getId()) || r.getPermissions().contains(Permission.ADMINISTRATOR))
-                    .blockOptional().orElse(false);
-
-            return ownerId.equals(member.getId()) || admin;
-        });
+        return member.getRoles().any(r -> config.adminRoleId.equals(r.getId()) || r.getPermissions().contains(Permission.ADMINISTRATOR))
+                .map(b -> b && ownerId.equals(member.getId()));
     }
 
     @Override
