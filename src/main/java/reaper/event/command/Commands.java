@@ -29,7 +29,7 @@ import java.lang.management.*;
 import java.time.Duration;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicReference;
-import java.util.function.Consumer;
+import java.util.function.*;
 
 import static reaper.Constants.*;
 import static reaper.event.ReactionListener.all;
@@ -169,13 +169,12 @@ public class Commands{
                         .flatMap(self -> deleteMessages(self, message));
             }
 
-            try{
                 Attachment attachment = attachments.first();
 
                 Fi mapFile = mapDir.child(attachment.getFilename());
                 Fi image = mapDir.child(String.format("img_%s.png", UUID.randomUUID().toString()));
                 Mono<Consumer<EmbedCreateSpec>> map = Mono.defer(() -> {
-                    Mono<ContentHandler.MapInfo> pre = Mono.fromCallable(() ->{
+                    Mono<ContentHandler.MapInfo> pre = Mono.fromCallable(() -> {
                         Streams.copy(MessageUtil.download(attachment.getUrl()), mapFile.write());
                         ContentHandler.MapInfo mapInfo = contentHandler.readMap(mapFile.read());
                         ImageIO.write(mapInfo.image, "png", image.file());
@@ -191,22 +190,22 @@ public class Commands{
                     });
                 });
 
+                Function<Throwable, Mono<Void>> fallback = t -> req.getClient().getUserById(config.developerId)
+                    .flatMap(User::getPrivateChannel)
+                    .flatMap(channel -> channel.createEmbed(spec -> spec.setColor(errorColor)
+                            .setTitle(messageService.get("command.parsing-error"))
+                            .setDescription(MessageUtil.trimTo(Strings.neatError(t), Embed.MAX_DESCRIPTION_LENGTH))
+                    ))
+                    .then(message.addReaction(failed));
+
                 return req.getClient().getChannelById(config.mapsChannelId)
                         .publishOn(Schedulers.boundedElastic())
                         .cast(TextChannel.class)
                         .zipWith(map)
                         .flatMap(c -> c.getT1().createMessage(m -> m.addFile(image.name(), image.read()).setEmbed(c.getT2())
                                 .addFile(mapFile.name(), mapFile.read())))
-                        .then(message.addReaction(success));
-            }catch(Exception e){
-                return req.getClient().getUserById(config.developerId)
-                        .flatMap(User::getPrivateChannel)
-                        .flatMap(channel -> channel.createEmbed(spec -> spec.setColor(errorColor)
-                                .setTitle(messageService.get("command.parsing-error"))
-                                .setDescription(Strings.neatError(e))
-                        ))
-                        .then(message.addReaction(failed));
-            }
+                        .then(message.addReaction(success))
+                        .onErrorResume(fallback);
         }
     }
 
