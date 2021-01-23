@@ -66,7 +66,7 @@ public class Listener extends ReactiveEventAdapter implements CommandLineRunner{
         lcontentHandler = new LContentHandler();
 
         roleMessages = Seq.with(config.listenedMessages);
-        swears = new Fi("great_russian_language.txt", classpath)
+        swears = new Fi("great_russian_language.regexp", classpath)
                 .readString("UTF-8")
                 .toLowerCase()
                 .split("\n");
