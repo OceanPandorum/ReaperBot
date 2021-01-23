@@ -169,28 +169,28 @@ public class Commands{
                         .flatMap(self -> deleteMessages(self, message));
             }
 
-                Attachment attachment = attachments.first();
+            Attachment attachment = attachments.first();
 
-                Fi mapFile = mapDir.child(attachment.getFilename());
-                Fi image = mapDir.child(String.format("img_%s.png", UUID.randomUUID().toString()));
-                Mono<Consumer<EmbedCreateSpec>> map = Mono.defer(() -> {
-                    Mono<ContentHandler.MapInfo> pre = Mono.fromCallable(() -> {
-                        Streams.copy(MessageUtil.download(attachment.getUrl()), mapFile.write());
-                        ContentHandler.MapInfo mapInfo = contentHandler.readMap(mapFile.read());
-                        ImageIO.write(mapInfo.image, "png", image.file());
-                        return mapInfo;
-                    });
-
-                    return pre.map(info -> spec -> {
-                        spec.setColor(normalColor);
-                        spec.setImage("attachment://" + image.name());
-                        spec.setAuthor(member.getUsername(), null, member.getAvatarUrl());
-                        spec.setTitle(info.name().orElse(attachment.getFilename().replace(Vars.mapExtension, "")));
-                        info.description().filter(s -> !s.isEmpty()).ifPresent(description -> spec.setFooter(MessageUtil.trimTo(description, Embed.Footer.MAX_TEXT_LENGTH), null));
-                    });
+            Fi mapFile = mapDir.child(attachment.getFilename());
+            Fi image = mapDir.child(String.format("img_%s.png", UUID.randomUUID().toString()));
+            Mono<Consumer<EmbedCreateSpec>> map = Mono.defer(() -> {
+                Mono<ContentHandler.MapInfo> pre = Mono.fromCallable(() -> {
+                    Streams.copy(MessageUtil.download(attachment.getUrl()), mapFile.write());
+                    ContentHandler.MapInfo mapInfo = contentHandler.readMap(mapFile.read());
+                    ImageIO.write(mapInfo.image, "png", image.file());
+                    return mapInfo;
                 });
 
-                Function<Throwable, Mono<Void>> fallback = t -> req.getClient().getUserById(config.developerId)
+                return pre.map(info -> spec -> {
+                    spec.setColor(normalColor);
+                    spec.setImage("attachment://" + image.name());
+                    spec.setAuthor(member.getUsername(), null, member.getAvatarUrl());
+                    spec.setTitle(info.name().orElse(attachment.getFilename().replace(Vars.mapExtension, "")));
+                    info.description().filter(s -> !s.isEmpty()).ifPresent(description -> spec.setFooter(MessageUtil.trimTo(description, Embed.Footer.MAX_TEXT_LENGTH), null));
+                });
+            });
+
+            Function<Throwable, Mono<Void>> fallback = t -> req.getClient().getUserById(config.developerId)
                     .flatMap(User::getPrivateChannel)
                     .flatMap(channel -> channel.createEmbed(spec -> spec.setColor(errorColor)
                             .setTitle(messageService.get("command.parsing-error"))
@@ -198,14 +198,14 @@ public class Commands{
                     ))
                     .then(message.addReaction(failed));
 
-                return req.getClient().getChannelById(config.mapsChannelId)
-                        .publishOn(Schedulers.boundedElastic())
-                        .cast(TextChannel.class)
-                        .zipWith(map)
-                        .flatMap(c -> c.getT1().createMessage(m -> m.addFile(image.name(), image.read()).setEmbed(c.getT2())
-                                .addFile(mapFile.name(), mapFile.read())))
-                        .then(message.addReaction(success))
-                        .onErrorResume(fallback);
+            return req.getClient().getChannelById(config.mapsChannelId)
+                    .publishOn(Schedulers.boundedElastic())
+                    .cast(TextChannel.class)
+                    .zipWith(map)
+                    .flatMap(c -> c.getT1().createMessage(m -> m.addFile(image.name(), image.read()).setEmbed(c.getT2())
+                            .addFile(mapFile.name(), mapFile.read())))
+                    .then(message.addReaction(success))
+                    .onErrorResume(fallback);
         }
     }
 
