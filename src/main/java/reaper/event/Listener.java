@@ -111,6 +111,18 @@ public class Listener extends ReactiveEventAdapter implements CommandLineRunner{
     }
 
     @Override
+    public Publisher<?> onMessageUpdate(MessageUpdateEvent event){
+        return event.getMessage()
+                .filter(m -> event.isContentChanged())
+                .filter(m -> !m.getAuthor().map(User::isBot).orElse(false))
+                .flatMap(message -> message.getAuthorAsMember().flatMap(member -> {
+                    String text = event.getCurrentContent().orElse("");
+
+                    return isAdmin(member).flatMap(b -> !b && Structs.contains(swears, s -> Structs.contains(text.split("\\s+"), s::equalsIgnoreCase)) ? message.delete() : Mono.empty());
+                }));
+    }
+
+    @Override
     public Publisher<?> onReactionAdd(ReactionAddEvent event){
         Member member = event.getMember().orElse(null);
         if(!roleMessages.isEmpty() && member != null){
@@ -133,30 +145,24 @@ public class Listener extends ReactiveEventAdapter implements CommandLineRunner{
         Message message = event.getMessage();
         Member member = event.getMember().orElseThrow(RuntimeException::new);
         String text = message.getContent();
-        return message.getChannel()
-                .cast(TextChannel.class)
-                .flatMap(channel -> {
-                    if(!isAdmin(member)){
-                        if(Structs.contains(swears, s -> Structs.contains(text.split("\\s+"), s::equalsIgnoreCase))){
-                            return message.delete();
-                        }
-                    }
 
-                    if(!Objects.equals(config.commandChannelId, channel.getId()) && !isAdmin(member)){
-                        return Mono.empty();
-                    }
+        Mono<Void> swear = isAdmin(member).flatMap(b -> !b && Structs.contains(swears, s -> Structs.contains(text.split("\\s+"), s::equalsIgnoreCase)) ? message.delete() : Mono.empty());
 
-                    return handler.handle(event);
-                });
+        return message.getChannel().flatMap(channel -> {
+            Mono<Void> botChannel = isAdmin(member).flatMap(b -> !config.commandChannelId.equals(channel.getId()) && !b ? Mono.empty() : handler.handle(event));
+
+            return Mono.when(swear, botChannel);
+        });
     }
 
-    public boolean isAdmin(Member member){
-        if(member == null) return false;
-        boolean admin = member.getRoles()
-                .any(r -> config.adminRoleId.equals(r.getId()) || r.getPermissions().contains(Permission.ADMINISTRATOR))
-                .blockOptional().orElse(false);
+    public Mono<Boolean> isAdmin(Member member){
+        return Mono.fromCallable(() -> {
+            boolean admin = member.getRoles()
+                    .any(r -> config.adminRoleId.equals(r.getId()) || r.getPermissions().contains(Permission.ADMINISTRATOR))
+                    .blockOptional().orElse(false);
 
-        return ownerId.equals(member.getId()) || admin;
+            return ownerId.equals(member.getId()) || admin;
+        });
     }
 
     @Override
