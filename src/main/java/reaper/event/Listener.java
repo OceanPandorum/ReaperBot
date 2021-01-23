@@ -137,7 +137,7 @@ public class Listener extends ReactiveEventAdapter implements CommandLineRunner{
                 .cast(TextChannel.class)
                 .flatMap(channel -> {
                     if(!isAdmin(member)){
-                        if(Structs.contains(swears, s -> text.equalsIgnoreCase(s) || text.equalsIgnoreCase(new StringBuilder(s).reverse().toString()))){
+                        if(Structs.contains(swears, s -> Structs.contains(text.split("\\s+"), s::equalsIgnoreCase))){
                             return message.delete();
                         }
                     }
