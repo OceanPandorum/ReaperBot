@@ -116,9 +116,9 @@ public class Listener extends ReactiveEventAdapter implements CommandLineRunner{
                 .filter(m -> event.isContentChanged())
                 .filter(m -> !m.getAuthor().map(User::isBot).orElse(false))
                 .flatMap(message -> message.getAuthorAsMember().flatMap(member -> {
-                    String text = event.getCurrentContent().orElse("");
+                    String text = event.getCurrentContent().map(String::toLowerCase).orElse("");
 
-                    return isAdmin(member).flatMap(b -> !b && Structs.contains(swears, s -> Structs.contains(text.split("\\s+"), s::equalsIgnoreCase)) ? message.delete() : Mono.empty());
+                    return isAdmin(member).flatMap(b -> !b && Structs.contains(swears, s -> Structs.contains(text.split("\\s+"), t -> t.matches(s))) ? message.delete() : Mono.empty());
                 }));
     }
 
@@ -144,9 +144,9 @@ public class Listener extends ReactiveEventAdapter implements CommandLineRunner{
     public Mono<Void> handle(MessageCreateEvent event){
         Message message = event.getMessage();
         Member member = event.getMember().orElseThrow(RuntimeException::new);
-        String text = message.getContent();
+        String text = message.getContent().toLowerCase();
 
-        Mono<Void> swear = isAdmin(member).flatMap(b -> !b && Structs.contains(swears, s -> Structs.contains(text.split("\\s+"), s::equalsIgnoreCase)) ? message.delete() : Mono.empty());
+        Mono<Void> swear = isAdmin(member).flatMap(b -> !b && Structs.contains(swears, s -> Structs.contains(text.split("\\w+"), t -> t.matches(s))) ? message.delete() : Mono.empty());
 
         return message.getChannel().flatMap(channel -> {
             Mono<Void> botChannel = isAdmin(member).flatMap(b -> !config.commandChannelId.equals(channel.getId()) && !b ? Mono.empty() : handler.handle(event));
