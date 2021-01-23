@@ -181,7 +181,7 @@ public class Commands{
                     spec.setImage("attachment://" + image.name());
                     spec.setAuthor(member.getUsername(), null, member.getAvatarUrl());
                     spec.setTitle(map.name().orElse(attachment.getFilename().replace(Vars.mapExtension, "")));
-                    map.description().ifPresent(description -> spec.setFooter(MessageUtil.trimTo(description, Embed.Footer.MAX_TEXT_LENGTH), null));
+                    map.description().filter(s -> !s.isEmpty()).ifPresent(description -> spec.setFooter(MessageUtil.trimTo(description, Embed.Footer.MAX_TEXT_LENGTH), null));
                 };
 
                 return req.getClient().getChannelById(config.mapsChannelId)
