@@ -30,6 +30,7 @@ import java.time.Duration;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.*;
+import java.util.stream.Collectors;
 
 import static reaper.Constants.*;
 import static reaper.event.ReactionListener.all;
@@ -102,55 +103,59 @@ public class Commands{
         public Mono<Void> execute(String[] args, CommandRequest req, CommandResponse res){
             Message message = req.getMessage();
             Member member = req.getAuthorAsMember();
+            Seq<Attachment> attachments = Seq.with(message.getAttachments());
 
-            try{
-                Schematic schem = message.getAttachments().size() == 1
-                ? contentHandler.parseSchematicURL(message.getAttachments().stream().findFirst().orElseThrow(RuntimeException::new).getUrl())
-                : args.length > 0 && args[0].startsWith(Vars.schematicBaseStart)
-                ? contentHandler.parseSchematic(args[0]) : null;
+            if(attachments.size != 1 || !attachments.first().getFilename().endsWith(Vars.schematicExtension) || args.length > 0 && !args[0].startsWith(Vars.schematicBaseStart)){
+                return req.getReplyChannel().flatMap(channel -> channel.createEmbed(spec -> spec.setColor(errorColor)
+                        .setTitle(messageService.get("common.error"))
+                        .setDescription(messageService.get("command.postschem.empty-attachments"))))
+                        .flatMap(self -> deleteMessages(self, message));
+            }
 
-                if(schem == null){
-                    return req.getReplyChannel().flatMap(channel -> channel.createEmbed(spec -> spec.setColor(errorColor)
-                            .setTitle(messageService.get("common.error"))
-                            .setDescription(messageService.get("command.postschem.empty-attachments"))))
-                            .flatMap(self -> deleteMessages(self, message));
-                }
+            Mono<Schematic> schematic = Mono.fromCallable(() ->
+            attachments.size == 1
+            ? contentHandler.parseSchematicURL(attachments.first().getUrl())
+            : args.length > 0 && args[0].startsWith(Vars.schematicBaseStart)
+            ? contentHandler.parseSchematic(args[0]) : null
+            );
 
-                BufferedImage preview = contentHandler.previewSchematic(schem);
-                Fi previewFile = schemeDir.child(String.format("img_%s.png", UUID.randomUUID().toString()));
-                Fi schemFile = schemeDir.child(schem.name() + "." + Vars.schematicExtension);
-                Schematics.write(schem, schemFile);
-                ImageIO.write(preview, "png", previewFile.file());
+            Fi previewFile = schemeDir.child(String.format("img_%s.png", UUID.randomUUID().toString()));
+            AtomicReference<Fi> schemFile = new AtomicReference<>();
+            Mono<Consumer<EmbedCreateSpec>> schem = schematic.flatMap(s -> {
+                schemFile.set(schemeDir.child(s.name() + "." + Vars.schematicExtension));
 
-                Consumer<EmbedCreateSpec> embed = spec -> {
+                Mono<Void> pre = Mono.fromRunnable(() -> {
+                    try{
+                        BufferedImage preview = contentHandler.previewSchematic(s);
+                        Schematics.write(s, schemFile.get());
+                        ImageIO.write(preview, "png", previewFile.file());
+                    }catch(Throwable ignored){}
+                });
+
+                return pre.then(Mono.fromCallable(() -> spec -> {
                     spec.setColor(normalColor);
                     spec.setImage("attachment://" + previewFile.name());
                     spec.setAuthor(member.getUsername(), null, member.getAvatarUrl());
-                    spec.setTitle(schem.name());
-                    StringBuilder field = new StringBuilder();
+                    spec.setTitle(s.name());
+                }));
+            });
 
-                    schem.requirements().forEach(stack -> req.event().getGuild().flatMap(guild -> guild.getEmojis()
-                            .filter(emoji -> emoji.getName().equalsIgnoreCase(stack.item.name.replace("-", ""))).next())
-                            .subscribe(emoji -> field.append(emoji.asFormat()).append(stack.amount).append("  ")));
+            Function<Throwable, Mono<Void>> fallback = t -> req.getClient().getUserById(config.developerId)
+                    .flatMap(User::getPrivateChannel)
+                    .flatMap(channel -> channel.createEmbed(spec -> spec.setColor(errorColor)
+                            .setTitle(messageService.get("command.parsing-error"))
+                            .setDescription(MessageUtil.trimTo(Strings.neatError(t), Embed.MAX_DESCRIPTION_LENGTH))
+                    ))
+                    .then(message.addReaction(failed));
 
-                    spec.setTitle(schem.name());
-                    spec.setDescription(field.toString());
-                };
-
-                return req.getClient().getChannelById(config.schematicsChannelId)
-                        .cast(TextChannel.class)
-                        .flatMap(c -> c.createMessage(m -> m.addFile(previewFile.name(), previewFile.read())
-                                .setEmbed(embed).addFile(schemFile.name(), schemFile.read())))
-                        .then(message.addReaction(success));
-            }catch(Exception e){
-                return req.getClient().getUserById(config.developerId)
-                        .flatMap(User::getPrivateChannel)
-                        .flatMap(channel -> channel.createEmbed(spec -> spec.setColor(errorColor)
-                                .setTitle(messageService.get("command.parsing-error"))
-                                .setDescription(Strings.neatError(e))
-                        ))
-                        .then(message.addReaction(failed));
-            }
+            return req.getClient().getChannelById(config.schematicsChannelId)
+                    .publishOn(Schedulers.boundedElastic())
+                    .cast(TextChannel.class)
+                    .zipWith(schem)
+                    .flatMap(c -> c.getT1().createMessage(m -> m.addFile(previewFile.name(), previewFile.read()).setEmbed(c.getT2())
+                            .addFile(schemFile.get().name(), schemFile.get().read())))
+                    .then(message.addReaction(success))
+                    .onErrorResume(fallback);
         }
     }
 
