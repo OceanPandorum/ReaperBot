@@ -91,7 +91,8 @@ public class Commands{
             builder.append(messageService.format("command.status.uptime", Strings.formatMillis(rb.getUptime()))).append("\n");
             builder.append(messageService.format("command.status.swears-count", Listener.swears.length)).append("\n");
             builder.append(messageService.format("command.status.schem-dir-size", schemeDir.findAll(f -> f.extension().equals(Vars.schematicExtension)).size)).append("\n");
-            builder.append(messageService.format("command.status.map-dir-size", mapDir.findAll(f -> f.extension().equals(Vars.mapExtension)).size));
+            builder.append(messageService.format("command.status.map-dir-size", mapDir.findAll(f -> f.extension().equals(Vars.mapExtension)).size)).append("\n");
+            builder.append(messageService.format("command.status.validation-size", Listener.validation.size()));
 
             return messageService.info(req.getReplyChannel(), messageService.get("command.status.title"), builder.toString());
         }
