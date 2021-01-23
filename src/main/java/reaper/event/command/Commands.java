@@ -3,13 +3,13 @@ package reaper.event.command;
 import arc.files.Fi;
 import arc.func.Cons2;
 import arc.struct.Seq;
-import arc.util.*;
+import arc.util.Strings;
 import arc.util.io.Streams;
 import discord4j.core.object.Embed;
 import discord4j.core.object.entity.*;
 import discord4j.core.object.entity.channel.*;
 import discord4j.core.object.reaction.ReactionEmoji;
-import discord4j.core.spec.*;
+import discord4j.core.spec.EmbedCreateSpec;
 import mindustry.Vars;
 import mindustry.game.*;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -17,10 +17,10 @@ import org.springframework.stereotype.Service;
 import reactor.core.publisher.*;
 import reactor.core.scheduler.Schedulers;
 import reactor.util.*;
-import reaper.*;
+import reaper.ContentHandler;
 import reaper.event.Listener;
 import reaper.service.MessageService;
-import reaper.util.*;
+import reaper.util.MessageUtil;
 
 import javax.imageio.ImageIO;
 import java.awt.image.BufferedImage;
@@ -30,7 +30,6 @@ import java.time.Duration;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.*;
-import java.util.stream.Collectors;
 
 import static reaper.Constants.*;
 import static reaper.event.ReactionListener.all;
@@ -220,7 +219,7 @@ public class Commands{
         @Override
         public Mono<Void> execute(String[] args, CommandRequest req, CommandResponse res){
             if(args.length > 1 && !MessageUtil.canParseInt(args[1])){
-                return messageService.err(req.getReplyChannel(), "No u"); // todo перевод нормальный
+                return messageService.err(req.getReplyChannel(), messageService.get("command.postschem.page-not-int"));
             }
 
             int index = args.length > 1 ? Strings.parseInt(args[1]) : 0;
