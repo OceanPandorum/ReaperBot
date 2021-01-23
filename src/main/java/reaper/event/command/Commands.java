@@ -228,43 +228,43 @@ public class Commands{
         }
 
         private Mono<Void> send(String[] args, CommandRequest req, int index){
+            Member member = req.getAuthorAsMember();
             Mono<MessageChannel> channel = req.getReplyChannel();
             String path = config.serversMapDirs.get(args[0]);
             if(path == null){
                 return messageService.err(channel, messageService.format("command.maps.not-found-server", Strings.join(", ", config.serversMapDirs.keySet())));
             }
 
-            Seq<Fi> fiSeq = Fi.get(path).findAll(f -> f.extension().equals("msav"));
+            Seq<Fi> fiSeq = Fi.get(path).findAll(f -> f.extension().equals(Vars.mapExtension));
             if(index > fiSeq.size || index < 0){
                 return messageService.err(channel, messageService.get("command.maps.index-of-bound"));
             }
 
             Fi file = fiSeq.get(index);
-            ContentHandler.MapInfo map;
-            try{
-                map = contentHandler.readMap(file.read());
-            }catch(IOException e){
-                throw new RuntimeException(e);
-            }
             Fi image = mapDir.child(String.format("img_%s.png", UUID.randomUUID().toString()));
-            try{
-                ImageIO.write(map.image, "png", image.file());
-            }catch(Throwable t){
-                throw new RuntimeException(t);
-            }
+            Mono<Consumer<EmbedCreateSpec>> map = Mono.defer(() -> {
+                Mono<ContentHandler.MapInfo> pre = Mono.fromCallable(() -> {
+                    ContentHandler.MapInfo mapInfo = contentHandler.readMap(file.read());
+                    ImageIO.write(mapInfo.image, "png", image.file());
+                    return mapInfo;
+                });
 
-            Consumer<EmbedCreateSpec> embed = spec -> {
-                spec.setColor(normalColor);
-                spec.setImage("attachment://" + image.name());
-                spec.setTitle(map.name().orElse(file.nameWithoutExtension()));
-                spec.setDescription(messageService.format("command.maps.embed.description", args[0], index, fiSeq.size));
-                map.description().ifPresent(description -> spec.setFooter(MessageUtil.trimTo(description, Embed.Footer.MAX_TEXT_LENGTH), null));
-            };
+                return pre.map(info -> spec -> {
+                    spec.setColor(normalColor);
+                    spec.setImage("attachment://" + image.name());
+                    spec.setAuthor(member.getUsername(), null, member.getAvatarUrl());
+                    spec.setTitle(info.name().orElse(file.nameWithoutExtension()));
+                    spec.setDescription(messageService.format("command.maps.embed.description", args[0], index, fiSeq.size));
+                });
+            });
 
-            return channel.flatMap(c -> c.createMessage(spec -> spec.addFile(image.name(), image.read()).setEmbed(embed)))
-                    .doOnNext(signal -> {
-                        all.each(emoji -> signal.addReaction(ReactionEmoji.unicode(emoji)).block());
-                        reactionListener.onReactionAdd(signal.getId(), add -> {
+            return channel.publishOn(Schedulers.boundedElastic())
+                    .zipWith(map)
+                    .flatMap(t -> t.getT1().createMessage(spec -> spec.addFile(image.name(), image.read()).setEmbed(t.getT2())))
+                    .flatMap(message -> {
+                        Mono<Void> reaction = Flux.fromIterable(all).flatMap(emoji -> message.addReaction(ReactionEmoji.unicode(emoji))).then();
+
+                        Mono<Void> controller = Mono.fromRunnable(() -> reactionListener.onReactionAdd(message.getId(), add -> {
                             Optional<ReactionEmoji.Unicode> unicode = add.getEmoji().asUnicodeEmoji();
                             if(!add.getUserId().equals(req.getAuthorAsMember().getId())){
                                 return false;
@@ -286,9 +286,10 @@ public class Commands{
 
                                 return true;
                             }).orElse(false);
-                        });
-                    })
-                    .then();
+                        }));
+
+                        return reaction.then(controller);
+                    });
         }
     }
 
