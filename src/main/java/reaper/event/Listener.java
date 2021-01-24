@@ -107,7 +107,7 @@ public class Listener extends ReactiveEventAdapter implements CommandLineRunner{
         return Mono.just(event.getMessage())
                 .filter(message -> !message.getAuthor().map(User::isBot).orElse(true))
                 .filterWhen(message -> message.getChannel().map(c -> c.getType() == Type.GUILD_TEXT))
-                .flatMap(__ -> handle(event));
+                .then(handle(event));
     }
 
     @Override
@@ -132,6 +132,7 @@ public class Listener extends ReactiveEventAdapter implements CommandLineRunner{
                     b[i] = true;
                 }
             }
+
             Snowflake userId = event.getUserId();
             if(Arrays.equals(b, all.get())){
                 return member.addRole(config.memberRoleId).then(Mono.fromRunnable(() -> validation.remove(userId)));

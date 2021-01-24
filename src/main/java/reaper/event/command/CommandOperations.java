@@ -1,12 +1,13 @@
 package reaper.event.command;
 
 import discord4j.core.event.domain.message.MessageCreateEvent;
-import discord4j.core.object.entity.User;
+import discord4j.core.object.entity.*;
 import discord4j.core.object.entity.channel.*;
 import discord4j.core.spec.*;
-import reactor.core.publisher.Mono;
+import reactor.core.publisher.*;
 import reactor.core.scheduler.*;
 
+import java.time.Duration;
 import java.util.function.*;
 
 class CommandOperations implements CommandRequest, CommandResponse{
@@ -14,7 +15,7 @@ class CommandOperations implements CommandRequest, CommandResponse{
     private final Supplier<Mono<MessageChannel>> replyChannel;
     private final Scheduler replyScheduler;
 
-    public CommandOperations(MessageCreateEvent event){
+    CommandOperations(MessageCreateEvent event){
         this.event = event;
         this.replyChannel = this::getReplyChannel;
         this.replyScheduler = Schedulers.immediate();
@@ -70,5 +71,13 @@ class CommandOperations implements CommandRequest, CommandResponse{
                 .publishOn(replyScheduler)
                 .flatMap(channel -> channel.createEmbed(spec))
                 .then();
+    }
+
+    @Override
+    public Mono<Void> sendTempEmbed(Consumer<? super EmbedCreateSpec> spec){
+        return replyChannel.get()
+                .publishOn(replyScheduler)
+                .flatMap(channel -> channel.createEmbed(spec))
+                .flatMap(message -> Mono.delay(Duration.ofSeconds(20)).flatMap(__ -> Flux.just(message, getMessage()).flatMap(Message::delete).then()));
     }
 }

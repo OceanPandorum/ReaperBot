@@ -18,4 +18,6 @@ public interface CommandResponse{
     Mono<Void> sendMessage(Consumer<? super MessageCreateSpec> spec);
 
     Mono<Void> sendEmbed(Consumer<? super EmbedCreateSpec> spec);
+
+    Mono<Void> sendTempEmbed(Consumer<? super EmbedCreateSpec> spec);
 }

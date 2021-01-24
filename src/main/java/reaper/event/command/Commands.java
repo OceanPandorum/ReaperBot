@@ -45,11 +45,6 @@ public class Commands{
     @Autowired
     private MessageService messageService;
 
-    public Mono<Void> deleteMessages(Message... messages){
-        Flux<Message> flux = Flux.just(messages);
-        return Mono.delay(Duration.ofSeconds(20)).flatMapMany(__ -> flux.flatMap(Message::delete)).then();
-    }
-
     @DiscordCommand(key = "help", description = "command.help.description")
     public class HelpCommand implements Command{
         @Override
@@ -106,10 +101,9 @@ public class Commands{
             Seq<Attachment> attachments = Seq.with(message.getAttachments());
 
             if(attachments.size != 1 || !attachments.first().getFilename().endsWith(Vars.schematicExtension) || args.length > 0 && !args[0].startsWith(Vars.schematicBaseStart)){
-                return req.getReplyChannel().flatMap(channel -> channel.createEmbed(spec -> spec.setColor(errorColor)
+                return res.sendTempEmbed(spec -> spec.setColor(errorColor)
                         .setTitle(messageService.get("common.error"))
-                        .setDescription(messageService.get("command.postschem.empty-attachments"))))
-                        .flatMap(self -> deleteMessages(self, message));
+                        .setDescription(messageService.get("command.postschem.empty-attachments")));
             }
 
             Mono<Schematic> schematic = Mono.fromCallable(() ->
@@ -168,10 +162,9 @@ public class Commands{
             Seq<Attachment> attachments = Seq.with(message.getAttachments());
 
             if(attachments.size != 1 || !attachments.first().getFilename().endsWith(Vars.mapExtension)){
-                return req.getReplyChannel().flatMap(channel -> channel.createEmbed(spec -> spec.setColor(errorColor)
+                return res.sendTempEmbed(spec -> spec.setColor(errorColor)
                         .setTitle(messageService.get("common.error"))
-                        .setDescription(messageService.get("command.postmap.empty-attachments"))))
-                        .flatMap(self -> deleteMessages(self, message));
+                        .setDescription(messageService.get("command.postmap.empty-attachments")));
             }
 
             Attachment attachment = attachments.first();
