@@ -141,6 +141,7 @@ public class ContentHandler{
         }
 
         world = new World(){
+            @Override
             public Tile tile(int x, int y){
                 return new Tile(x, y);
             }
@@ -316,7 +317,7 @@ public class ContentHandler{
         }
     }
 
-    static class ImageData implements TextureData{
+    private static class ImageData implements TextureData{
         final BufferedImage image;
 
         public ImageData(BufferedImage image){
