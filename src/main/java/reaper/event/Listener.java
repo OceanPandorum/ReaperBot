@@ -22,6 +22,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.stereotype.Component;
 import reactor.core.publisher.Mono;
+import reactor.function.TupleUtils;
 import reactor.util.*;
 import reaper.*;
 import reaper.service.MessageService;
@@ -92,9 +93,9 @@ public class Listener extends ReactiveEventAdapter implements CommandLineRunner{
         gateway.updatePresence(Presence.idle(ActivityUpdateRequest.builder().type(0).name(bundle.get("discord.status")).build())).block();
 
         ownerId = gateway.rest().getApplicationInfo()
-                         .map(ApplicationInfoData::owner)
-                         .map(o -> Snowflake.of(o.id()))
-                         .block();
+                .map(ApplicationInfoData::owner)
+                .map(owner -> Snowflake.of(owner.id()))
+                .cache();
     }
 
     @PreDestroy
@@ -157,8 +158,9 @@ public class Listener extends ReactiveEventAdapter implements CommandLineRunner{
     }
 
     public Mono<Boolean> isAdmin(Member member){
-        return member.getRoles().any(r -> config.adminRoleId.equals(r.getId()) || r.getPermissions().contains(Permission.ADMINISTRATOR))
-                .map(b -> b || ownerId.equals(member.getId()));
+        return member.getRoles().any(role -> config.adminRoleId.equals(role.getId()) || role.getPermissions().contains(Permission.ADMINISTRATOR))
+                .zipWith(ownerId)
+                .map(TupleUtils.function((bool, ownerId) -> bool || ownerId.equals(member.getId())));
     }
 
     @Override
@@ -174,13 +176,14 @@ public class Listener extends ReactiveEventAdapter implements CommandLineRunner{
                 }
 
                 gateway.getChannelById(i.channelId)
-                        .cast(TextChannel.class)
+                        .ofType(TextChannel.class)
                         .flatMap(c -> c.createEmbed(e -> e.setColor(MessageService.normalColor)
                                 .setTitle(i.title).setDescription(i.description)))
                         .map(Message::getId)
                         .doOnNext(signal -> {
                             if(i.listenable){
                                 config.listenedMessages.add(signal);
+                                config.update();
                             }
                         })
                         .block();

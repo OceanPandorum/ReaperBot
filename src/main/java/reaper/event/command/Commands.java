@@ -16,6 +16,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.*;
 import reactor.core.scheduler.Schedulers;
+import reactor.function.TupleUtils;
 import reactor.util.*;
 import reaper.ContentHandler;
 import reaper.event.Listener;
@@ -24,9 +25,7 @@ import reaper.util.MessageUtil;
 
 import javax.imageio.ImageIO;
 import java.awt.image.BufferedImage;
-import java.io.IOException;
 import java.lang.management.*;
-import java.time.Duration;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.*;
@@ -135,6 +134,7 @@ public class Commands{
             });
 
             Function<Throwable, Mono<Void>> fallback = t -> req.getClient().getUserById(config.developerId)
+                    .publishOn(Schedulers.boundedElastic())
                     .flatMap(User::getPrivateChannel)
                     .flatMap(channel -> channel.createEmbed(spec -> spec.setColor(errorColor)
                             .setTitle(messageService.get("command.parsing-error"))
@@ -144,7 +144,7 @@ public class Commands{
 
             return req.getClient().getChannelById(config.schematicsChannelId)
                     .publishOn(Schedulers.boundedElastic())
-                    .cast(TextChannel.class)
+                    .ofType(TextChannel.class)
                     .zipWith(schem)
                     .flatMap(c -> c.getT1().createMessage(m -> m.addFile(previewFile.name(), previewFile.read()).setEmbed(c.getT2())
                             .addFile(schemFile.get().name(), schemFile.get().read())))
@@ -189,6 +189,7 @@ public class Commands{
             });
 
             Function<Throwable, Mono<Void>> fallback = t -> req.getClient().getUserById(config.developerId)
+                    .publishOn(Schedulers.boundedElastic())
                     .flatMap(User::getPrivateChannel)
                     .flatMap(channel -> channel.createEmbed(spec -> spec.setColor(errorColor)
                             .setTitle(messageService.get("command.parsing-error"))
@@ -198,7 +199,7 @@ public class Commands{
 
             return req.getClient().getChannelById(config.mapsChannelId)
                     .publishOn(Schedulers.boundedElastic())
-                    .cast(TextChannel.class)
+                    .ofType(TextChannel.class)
                     .zipWith(map)
                     .flatMap(c -> c.getT1().createMessage(m -> m.addFile(image.name(), image.read()).setEmbed(c.getT2())
                             .addFile(mapFile.name(), mapFile.read())))
@@ -222,15 +223,15 @@ public class Commands{
 
         private Mono<Void> send(String[] args, CommandRequest req, int index){
             Member member = req.getAuthorAsMember();
-            Mono<MessageChannel> channel = req.getReplyChannel();
+            Mono<MessageChannel> reply = req.getReplyChannel();
             String path = config.serversMapDirs.get(args[0]);
             if(path == null){
-                return messageService.err(channel, messageService.format("command.maps.not-found-server", Strings.join(", ", config.serversMapDirs.keySet())));
+                return messageService.err(reply, messageService.format("command.maps.not-found-server", Strings.join(", ", config.serversMapDirs.keySet())));
             }
 
             Seq<Fi> fiSeq = Fi.get(path).findAll(f -> f.extension().equals(Vars.mapExtension));
             if(index > fiSeq.size || index < 0){
-                return messageService.err(channel, messageService.get("command.maps.index-of-bound"));
+                return messageService.err(reply, messageService.get("command.maps.index-of-bound"));
             }
 
             Fi file = fiSeq.get(index);
@@ -251,9 +252,9 @@ public class Commands{
                 });
             });
 
-            return channel.publishOn(Schedulers.boundedElastic())
+            return reply.publishOn(Schedulers.boundedElastic())
                     .zipWith(map)
-                    .flatMap(t -> t.getT1().createMessage(spec -> spec.addFile(image.name(), image.read()).setEmbed(t.getT2())))
+                    .flatMap(TupleUtils.function((channel, spec) -> channel.createMessage(messageSpec -> messageSpec.addFile(image.name(), image.read()).setEmbed(spec))))
                     .flatMap(message -> {
                         Mono<Void> reaction = Flux.fromIterable(all).flatMap(emoji -> message.addReaction(ReactionEmoji.unicode(emoji))).then();
 
@@ -274,7 +275,7 @@ public class Commands{
                                 }else if(i == 2){
                                     send(args, req, index + 1).block();
                                 }else{
-                                    channel.flatMap(c -> c.createMessage(spec -> spec.addFile(file.name(), file.read()))).block();
+                                    reply.flatMap(c -> c.createMessage(spec -> spec.addFile(file.name(), file.read()))).block();
                                 }
 
                                 return true;

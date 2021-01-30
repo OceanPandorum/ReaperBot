@@ -4,6 +4,8 @@ import discord4j.common.util.Snowflake;
 
 import java.util.*;
 
+import static reaper.Constants.*;
+
 public class Config{
 
     public Snowflake commandChannelId = Snowflake.of(744874986073751584L);
@@ -31,4 +33,8 @@ public class Config{
     public Set<Snowflake> listenedMessages = Collections.emptySet();
 
     public List<InfoEmbed> info = Collections.emptyList();
+
+    public void update(){
+        configFile.writeString(gson.toJson(this));
+    }
 }

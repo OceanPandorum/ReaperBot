@@ -3,6 +3,7 @@ package reaper;
 import arc.files.Fi;
 import com.google.gson.*;
 import discord4j.common.util.Snowflake;
+import reactor.core.publisher.Mono;
 import reaper.event.ReactionListener;
 import reaper.util.json.SnowflakeSerializer;
 
@@ -14,7 +15,7 @@ public final class Constants{
             .serializeNulls()
             .create();
 
-    public static Snowflake ownerId;
+    public static Mono<Snowflake> ownerId;
 
     public static Fi configFile = Fi.get("prefs.json");
     public static Fi cacheDir = new Fi("cache/");
