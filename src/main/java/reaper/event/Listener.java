@@ -4,16 +4,12 @@ import arc.files.Fi;
 import arc.struct.Seq;
 import arc.util.*;
 import discord4j.common.util.Snowflake;
-import discord4j.core.*;
+import discord4j.core.GatewayDiscordClient;
 import discord4j.core.event.ReactiveEventAdapter;
 import discord4j.core.event.domain.message.*;
 import discord4j.core.object.entity.*;
 import discord4j.core.object.entity.channel.Channel.Type;
 import discord4j.core.object.entity.channel.TextChannel;
-import discord4j.core.object.presence.Presence;
-import discord4j.discordjson.json.*;
-import discord4j.gateway.intent.*;
-import discord4j.rest.response.ResponseFunction;
 import discord4j.rest.util.Permission;
 import discord4j.store.api.util.Lazy;
 import io.netty.util.ResourceLeakDetector;
@@ -25,9 +21,10 @@ import reactor.core.publisher.Mono;
 import reactor.function.TupleUtils;
 import reactor.util.*;
 import reaper.*;
+import reaper.event.command.CommandHandler;
 import reaper.service.MessageService;
 
-import javax.annotation.*;
+import javax.annotation.PostConstruct;
 import java.util.*;
 
 import static arc.Files.FileType.classpath;
@@ -40,10 +37,7 @@ public class Listener extends ReactiveEventAdapter implements CommandLineRunner{
     public static final Map<Snowflake, boolean[]> validation = Collections.synchronizedMap(new WeakHashMap<>());
 
     @Autowired
-    private MessageService bundle;
-
-    @Autowired
-    private reaper.event.command.CommandHandler handler;
+    private CommandHandler handler;
 
     protected GatewayDiscordClient gateway;
 
@@ -71,52 +65,23 @@ public class Listener extends ReactiveEventAdapter implements CommandLineRunner{
                 .readString("UTF-8")
                 .toLowerCase()
                 .split("\n");
-
-        gateway = DiscordClientBuilder.create(Objects.requireNonNull(config.token, "token"))
-                .onClientResponse(ResponseFunction.emptyIfNotFound())
-                .build()
-                .gateway()
-                .setEnabledIntents(IntentSet.of(
-                        Intent.GUILD_MESSAGES,
-                        Intent.GUILD_MESSAGE_REACTIONS
-                ))
-                .login()
-                .blockOptional()
-                .orElseThrow(RuntimeException::new);
-
-        gateway.on(this).subscribe();
-        gateway.on(new ReactionListener()).subscribe();
-
-        gateway.updatePresence(Presence.idle(ActivityUpdateRequest.builder().type(0).name(bundle.get("discord.status")).build())).block();
-
-        ownerId = gateway.rest().getApplicationInfo()
-                .map(ApplicationInfoData::owner)
-                .map(owner -> Snowflake.of(owner.id()))
-                .cache();
-    }
-
-    @PreDestroy
-    public void destroy(){
-        gateway.logout().block();
     }
 
     @Override
     public Publisher<?> onMessageCreate(MessageCreateEvent event){
         return Mono.just(event.getMessage())
                 .filter(message -> !message.getAuthor().map(User::isBot).orElse(true))
-                .filterWhen(message -> message.getChannel().map(c -> c.getType() == Type.GUILD_TEXT))
-                .then(handle(event));
+                .filterWhen(message -> message.getChannel().map(channel -> channel.getType() == Type.GUILD_TEXT))
+                .flatMap(__ -> handle(event));
     }
 
     @Override
     public Publisher<?> onMessageUpdate(MessageUpdateEvent event){
-        return event.getMessage()
-                .filter(message -> event.isContentChanged())
-                .filter(message -> !message.getAuthor().map(User::isBot).orElse(false))
+        return event.getMessage().filter(message -> event.isContentChanged() && !message.getAuthor().map(User::isBot).orElse(false))
                 .flatMap(message -> message.getAuthorAsMember().flatMap(member -> {
                     String text = event.getCurrentContent().map(String::toLowerCase).orElse("");
 
-                    return isAdmin(member).flatMap(b -> !b && Structs.contains(swears, s -> Structs.contains(text.split("\\w+"), t -> t.matches(s))) ? message.delete() : Mono.empty());
+                    return isAdmin(member).flatMap(bool -> !bool && Structs.contains(swears, s -> Structs.contains(text.split("\\w+"), t -> t.matches(s))) ? message.delete() : Mono.empty());
                 }));
     }
 
@@ -174,7 +139,7 @@ public class Listener extends ReactiveEventAdapter implements CommandLineRunner{
 
                 gateway.getChannelById(infoEmbed.channelId)
                         .ofType(TextChannel.class)
-                        .flatMap(c -> c.createEmbed(e -> e.setColor(MessageService.normalColor)
+                        .flatMap(channel -> channel.createEmbed(spec -> spec.setColor(MessageService.normalColor)
                                 .setTitle(infoEmbed.title).setDescription(infoEmbed.description)))
                         .map(Message::getId)
                         .doOnNext(signal -> {

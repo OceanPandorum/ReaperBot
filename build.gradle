@@ -16,8 +16,6 @@ ext{
     gson_version      = '2.8.6'
 }
 
-project.ext.mainClassName = 'reaper.ReaperBot'
-
 dependencies{
     implementation "com.discord4j:discord4j-core:$d4j_version"
     implementation "com.github.Anuken.Arc:arc-core:$mindustry_version"

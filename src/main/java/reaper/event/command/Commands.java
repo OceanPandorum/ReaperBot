@@ -146,8 +146,8 @@ public class Commands{
                     .publishOn(Schedulers.boundedElastic())
                     .ofType(TextChannel.class)
                     .zipWith(schem)
-                    .flatMap(c -> c.getT1().createMessage(m -> m.addFile(previewFile.name(), previewFile.read()).setEmbed(c.getT2())
-                            .addFile(schemFile.get().name(), schemFile.get().read())))
+                    .flatMap(TupleUtils.function((channel, embed) -> channel.createMessage(spec -> spec.addFile(previewFile.name(), previewFile.read())
+                            .setEmbed(embed).addFile(schemFile.get().name(), schemFile.get().read()))))
                     .then(message.addReaction(success))
                     .onErrorResume(fallback);
         }
@@ -201,8 +201,8 @@ public class Commands{
                     .publishOn(Schedulers.boundedElastic())
                     .ofType(TextChannel.class)
                     .zipWith(map)
-                    .flatMap(c -> c.getT1().createMessage(m -> m.addFile(image.name(), image.read()).setEmbed(c.getT2())
-                            .addFile(mapFile.name(), mapFile.read())))
+                    .flatMap(TupleUtils.function((channel, embed) ->  channel.createMessage(spec -> spec.addFile(image.name(), image.read())
+                            .setEmbed(embed).addFile(mapFile.name(), mapFile.read()))))
                     .then(message.addReaction(success))
                     .onErrorResume(fallback);
         }
