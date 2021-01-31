@@ -19,7 +19,7 @@ import reactor.core.scheduler.Schedulers;
 import reactor.function.TupleUtils;
 import reactor.util.*;
 import reaper.ContentHandler;
-import reaper.event.Listener;
+import reaper.event.*;
 import reaper.service.MessageService;
 import reaper.util.MessageUtil;
 
@@ -258,7 +258,7 @@ public class Commands{
                     .flatMap(message -> {
                         Mono<Void> reaction = Flux.fromIterable(all).flatMap(emoji -> message.addReaction(ReactionEmoji.unicode(emoji))).then();
 
-                        Mono<Void> controller = Mono.fromRunnable(() -> reactionListener.onReactionAdd(message.getId(), add -> {
+                        Mono<Void> controller = Mono.fromRunnable(() -> ReactionListener.onReactionAdd(message.getId(), add -> {
                             Optional<ReactionEmoji.Unicode> unicode = add.getEmoji().asUnicodeEmoji();
                             if(!add.getUserId().equals(req.getAuthorAsMember().getId())){
                                 return false;

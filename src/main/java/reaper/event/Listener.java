@@ -72,8 +72,7 @@ public class Listener extends ReactiveEventAdapter implements CommandLineRunner{
                 .toLowerCase()
                 .split("\n");
 
-        gateway = DiscordClientBuilder
-                .create(Objects.requireNonNull(config.token, "token"))
+        gateway = DiscordClientBuilder.create(Objects.requireNonNull(config.token, "token"))
                 .onClientResponse(ResponseFunction.emptyIfNotFound())
                 .build()
                 .gateway()
@@ -85,10 +84,8 @@ public class Listener extends ReactiveEventAdapter implements CommandLineRunner{
                 .blockOptional()
                 .orElseThrow(RuntimeException::new);
 
-        reactionListener = new ReactionListener();
-
         gateway.on(this).subscribe();
-        gateway.on(reactionListener).subscribe();
+        gateway.on(new ReactionListener()).subscribe();
 
         gateway.updatePresence(Presence.idle(ActivityUpdateRequest.builder().type(0).name(bundle.get("discord.status")).build())).block();
 
@@ -114,8 +111,8 @@ public class Listener extends ReactiveEventAdapter implements CommandLineRunner{
     @Override
     public Publisher<?> onMessageUpdate(MessageUpdateEvent event){
         return event.getMessage()
-                .filter(m -> event.isContentChanged())
-                .filter(m -> !m.getAuthor().map(User::isBot).orElse(false))
+                .filter(message -> event.isContentChanged())
+                .filter(message -> !message.getAuthor().map(User::isBot).orElse(false))
                 .flatMap(message -> message.getAuthorAsMember().flatMap(member -> {
                     String text = event.getCurrentContent().map(String::toLowerCase).orElse("");
 
@@ -148,10 +145,10 @@ public class Listener extends ReactiveEventAdapter implements CommandLineRunner{
         Member member = event.getMember().orElseThrow(RuntimeException::new);
         String text = message.getContent().toLowerCase();
 
-        Mono<Void> swear = isAdmin(member).flatMap(b -> !b && Structs.contains(swears, s -> Structs.contains(text.split("\\w+"), t -> t.matches(s))) ? message.delete() : Mono.empty());
+        Mono<Void> swear = isAdmin(member).flatMap(bool -> !bool && Structs.contains(swears, s -> Structs.contains(text.split("\\w+"), t -> t.matches(s))) ? message.delete() : Mono.empty());
 
         return message.getChannel().flatMap(channel -> {
-            Mono<Void> botChannel = isAdmin(member).flatMap(b -> !config.commandChannelId.equals(channel.getId()) && !b ? Mono.empty() : handler.handle(event));
+            Mono<Void> botChannel = isAdmin(member).flatMap(bool -> !config.commandChannelId.equals(channel.getId()) && !bool ? Mono.empty() : handler.handle(event));
 
             return Mono.when(swear, botChannel);
         });
@@ -169,19 +166,19 @@ public class Listener extends ReactiveEventAdapter implements CommandLineRunner{
             int index = Strings.parseInt(args[1]);
             try{
                 roleMessages = Seq.with(config.listenedMessages);
-                InfoEmbed i = config.info.get(index - 1);
-                if(i == null){
+                InfoEmbed infoEmbed = config.info.get(index - 1);
+                if(infoEmbed == null){
                     log.error("Info embed with index '{}' not found", index);
                     return;
                 }
 
-                gateway.getChannelById(i.channelId)
+                gateway.getChannelById(infoEmbed.channelId)
                         .ofType(TextChannel.class)
                         .flatMap(c -> c.createEmbed(e -> e.setColor(MessageService.normalColor)
-                                .setTitle(i.title).setDescription(i.description)))
+                                .setTitle(infoEmbed.title).setDescription(infoEmbed.description)))
                         .map(Message::getId)
                         .doOnNext(signal -> {
-                            if(i.listenable){
+                            if(infoEmbed.listenable){
                                 config.listenedMessages.add(signal);
                                 config.update();
                             }

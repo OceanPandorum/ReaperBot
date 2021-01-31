@@ -60,17 +60,17 @@ public class ReactionListener extends ReactiveEventAdapter{
         Seq.with(messageTtl.entrySet()).each(e -> Time.timeSinceMillis(e.getValue()) >= EXPIRE_TIME, e -> unsubscribe(e.getKey()));
     }
 
-    public void onReactionAdd(Snowflake message, Func<ReactionAddEvent, Boolean> handler){
+    public static void onReactionAdd(Snowflake message, Func<ReactionAddEvent, Boolean> handler){
         addListeners.put(message, handler);
         messageTtl.put(message, Time.millis());
     }
 
-    public void onReaction(Snowflake message, Func2<ReactionAddEvent, ReactionRemoveEvent, Boolean> handler){
+    public static void onReaction(Snowflake message, Func2<ReactionAddEvent, ReactionRemoveEvent, Boolean> handler){
         listeners.put(message, handler);
         messageTtl.put(message, Time.millis());
     }
 
-    public void unsubscribe(Snowflake messageId){
+    public static void unsubscribe(Snowflake messageId){
         addListeners.remove(messageId);
         listeners.remove(messageId);
         messageTtl.remove(messageId);
