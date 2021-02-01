@@ -75,7 +75,7 @@ public class CommandHandler{
                     if(!satisfied){
                         return messageService.err(channel, messageService.get("command.response.few-arguments.title"),
                                                   messageService.format("command.response.few-arguments.description",
-                                                                        prefix, info.text));
+                                                                        prefix, info.text, info.paramText));
                     }
                     result.add(argstr);
                     break;
@@ -91,7 +91,7 @@ public class CommandHandler{
             if(!satisfied && info.params.length > 0 && !info.params[0].optional){
                 return messageService.err(channel, messageService.get("command.response.few-arguments.title"),
                                           messageService.format("command.response.few-arguments.description",
-                                                                prefix, info.text));
+                                                                prefix, info.text, info.paramText));
             }
 
             return cmd.execute(result.toArray(String.class), operations, operations);
