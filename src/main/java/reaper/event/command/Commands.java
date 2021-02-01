@@ -216,7 +216,7 @@ public class Commands{
                 return messageService.err(req.getReplyChannel(), messageService.get("command.postschem.page-not-int"));
             }
 
-            int index = args.length > 1 ? Strings.parseInt(args[1]) : 0;
+            int index = args.length > 1 ? Strings.parseInt(args[1]) : 1;
 
             return send(args, req, index);
         }

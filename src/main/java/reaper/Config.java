@@ -16,8 +16,8 @@ public class Config{
     public Snowflake memberRoleId = Snowflake.of(747908856604262469L);
 
     public Map<String, String> serversMapDirs = Map.of(
-            "survival", "/home/servers/as/config/maps",
-            "attack", "/home/servers/as/config/maps",
+            "survival", "/home/servers/survival/config/maps",
+            "attack", "/home/servers/attack/config/maps",
             "msgo", "/home/servers/mind-go/config/maps",
             "pvp", "/home/servers/pvp/config/maps"
     );
