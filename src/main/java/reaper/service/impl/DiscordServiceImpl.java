@@ -31,7 +31,6 @@ public class DiscordServiceImpl implements DiscordService{
 
     @Autowired(required = false)
     public void init(List<ReactiveEventAdapter> adapters){
-
         gateway = DiscordClientBuilder.create(Objects.requireNonNull(config.token, "token"))
                 .onClientResponse(ResponseFunction.emptyIfNotFound())
                 .build()

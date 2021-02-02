@@ -22,7 +22,6 @@ public final class Constants{
     public static Fi mapDir = cacheDir.child("map/");
 
     public static ContentHandler contentHandler;
-    public static LContentHandler lcontentHandler;
     public static Config config;
 
     static{

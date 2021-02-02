@@ -31,8 +31,8 @@ import static arc.Files.FileType.classpath;
 import static reaper.Constants.*;
 
 @Component
-public class Listener extends ReactiveEventAdapter implements CommandLineRunner{
-    private static final Logger log = Loggers.getLogger(Listener.class);
+public class MessageEventListener extends ReactiveEventAdapter implements CommandLineRunner{
+    private static final Logger log = Loggers.getLogger(MessageEventListener.class);
 
     public static final Map<Snowflake, boolean[]> validation = Collections.synchronizedMap(new WeakHashMap<>());
 
@@ -50,7 +50,7 @@ public class Listener extends ReactiveEventAdapter implements CommandLineRunner{
 
     public static String[] swears;
 
-    public Listener(){
+    public MessageEventListener(){
         // из-за гиганских стак трейсов о утечке озу, которые я пока не понял как решать
         ResourceLeakDetector.setLevel(ResourceLeakDetector.Level.DISABLED);
     }
@@ -58,7 +58,6 @@ public class Listener extends ReactiveEventAdapter implements CommandLineRunner{
     @PostConstruct
     public void init(){
         contentHandler = new ContentHandler();
-        lcontentHandler = new LContentHandler();
 
         roleMessages = Seq.with(config.listenedMessages);
         swears = new Fi("great_russian_language.regexp", classpath)
@@ -81,7 +80,7 @@ public class Listener extends ReactiveEventAdapter implements CommandLineRunner{
                 .flatMap(message -> message.getAuthorAsMember().flatMap(member -> {
                     String text = event.getCurrentContent().map(String::toLowerCase).orElse("");
 
-                    return isAdmin(member).flatMap(bool -> !bool && Structs.contains(swears, s -> Structs.contains(text.split("\\w+"), t -> t.matches(s))) ? message.delete() : Mono.empty());
+                    return isAdmin(member).flatMap(bool -> !bool && Structs.contains(swears, s -> Structs.contains(text.split("\\s+"), t -> t.matches(s))) ? message.delete() : Mono.empty());
                 }));
     }
 
@@ -110,7 +109,7 @@ public class Listener extends ReactiveEventAdapter implements CommandLineRunner{
         Member member = event.getMember().orElseThrow(RuntimeException::new);
         String text = message.getContent().toLowerCase();
 
-        Mono<Void> swear = isAdmin(member).flatMap(bool -> !bool && Structs.contains(swears, s -> Structs.contains(text.split("\\w+"), t -> t.matches(s))) ? message.delete() : Mono.empty());
+        Mono<Void> swear = isAdmin(member).flatMap(bool -> !bool && Structs.contains(swears, s -> Structs.contains(text.split("\\s+"), t -> t.matches(s))) ? message.delete() : Mono.empty());
 
         return message.getChannel().flatMap(channel -> {
             Mono<Void> botChannel = isAdmin(member).flatMap(bool -> !config.commandChannelId.equals(channel.getId()) && !bool ? Mono.empty() : handler.handle(event));

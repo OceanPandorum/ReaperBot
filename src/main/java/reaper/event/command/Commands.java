@@ -31,7 +31,7 @@ import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.*;
 
 import static reaper.Constants.*;
-import static reaper.event.ReactionListener.all;
+import static reaper.event.ReactionEventListener.all;
 import static reaper.service.MessageService.*;
 
 @Service
@@ -82,10 +82,10 @@ public class Commands{
             long mem = (Runtime.getRuntime().totalMemory() - Runtime.getRuntime().freeMemory()) / 1024 / 1024;
             builder.append(messageService.format("command.status.memory", mem)).append("\n");
             builder.append(messageService.format("command.status.uptime", Strings.formatMillis(rb.getUptime()))).append("\n");
-            builder.append(messageService.format("command.status.swears-count", Listener.swears.length)).append("\n");
+            builder.append(messageService.format("command.status.swears-count", MessageEventListener.swears.length)).append("\n");
             builder.append(messageService.format("command.status.schem-dir-size", schemeDir.findAll(f -> f.extension().equals(Vars.schematicExtension)).size)).append("\n");
             builder.append(messageService.format("command.status.map-dir-size", mapDir.findAll(f -> f.extension().equals(Vars.mapExtension)).size)).append("\n");
-            builder.append(messageService.format("command.status.validation-size", Listener.validation.size()));
+            builder.append(messageService.format("command.status.validation-size", MessageEventListener.validation.size()));
 
             return messageService.info(req.getReplyChannel(), messageService.get("command.status.title"), builder.toString());
         }
@@ -125,7 +125,7 @@ public class Commands{
                     }catch(Throwable ignored){}
                 });
 
-                return pre.then(Mono.fromCallable(() -> spec -> {
+                return pre.then(Mono.fromSupplier(() -> spec -> {
                     spec.setColor(normalColor);
                     spec.setImage("attachment://" + previewFile.name());
                     spec.setAuthor(member.getUsername(), null, member.getAvatarUrl());
@@ -258,7 +258,7 @@ public class Commands{
                     .flatMap(message -> {
                         Mono<Void> reaction = Flux.fromIterable(all).flatMap(emoji -> message.addReaction(ReactionEmoji.unicode(emoji))).then();
 
-                        Mono<Void> controller = Mono.fromRunnable(() -> ReactionListener.onReactionAdd(message.getId(), add -> {
+                        Mono<Void> controller = Mono.fromRunnable(() -> ReactionEventListener.onReactionAdd(message.getId(), add -> {
                             Optional<ReactionEmoji.Unicode> unicode = add.getEmoji().asUnicodeEmoji();
                             if(!add.getUserId().equals(req.getAuthorAsMember().getId())){
                                 return false;

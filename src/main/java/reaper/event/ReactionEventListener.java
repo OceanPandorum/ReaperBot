@@ -14,7 +14,7 @@ import reactor.core.publisher.Mono;
 import java.util.concurrent.ConcurrentHashMap;
 
 @Component
-public class ReactionListener extends ReactiveEventAdapter{
+public class ReactionEventListener extends ReactiveEventAdapter{
     public static final long EXPIRE_TIME = 30000;
     public static final Seq<String> all = Seq.with("⬅", "⏺", "➡️");
 
