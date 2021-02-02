@@ -29,7 +29,7 @@ public class ReaperBot{
                             Objects.equals(remote.getHostString(), config.developerIp) ||
                             remote.getAddress().isAnyLocalAddress());
                 })
-                .then(chain.filter(exchange));
+                .flatMap(__ -> chain.filter(exchange));
     }
 
     @Bean
