@@ -64,9 +64,7 @@ public class Commands{
                 builder.append("\n");
             };
 
-            for(CommandInfo command : handler.commands().map(Command::compile)){
-                append.get(command, common);
-            }
+            handler.commands().map(Command::compile).each(commandInfo -> append.get(commandInfo, common));
 
             return messageService.info(req.getReplyChannel(), messageService.get("command.help.title"), common.toString());
         }
@@ -286,57 +284,4 @@ public class Commands{
                     });
         }
     }
-
-    // экспериментально
-    // @DiscordCommand(key = "lconvert", params = "[forward/default] [buffer-size] [multiplier]", description = "command.lconvert.description")
-    // public class LConvertCommand implements Command{
-    //     @Override
-    //     public Mono<Void> execute(String[] args, CommandRequest req, CommandResponse res){
-    //         Message message = req.getMessage();
-    //
-    //         if(message.getAttachments().isEmpty()){
-    //             return req.getReplyChannel().flatMap(channel -> channel.createEmbed(spec -> spec.setColor(errorColor)
-    //                     .setTitle(messageService.get("common.error"))
-    //                     .setDescription(messageService.get("command.lconvert.empty-attachments"))))
-    //                     .flatMap(self -> deleteMessages(self, message));
-    //         }
-    //
-    //         if(args.length > 2 && !MessageUtil.canParseInt(args[2])){
-    //             return req.getReplyChannel().flatMap(channel -> channel.createEmbed(spec -> spec.setColor(errorColor)
-    //                     .setTitle(messageService.get("common.error"))
-    //                     .setDescription(messageService.get("command.lconvert.buffer-size-not-int"))))
-    //                     .flatMap(self -> deleteMessages(self, message));
-    //         }
-    //
-    //         if(args.length > 3 && !MessageUtil.canParseInt(args[3])){
-    //             return req.getReplyChannel().flatMap(channel -> channel.createEmbed(spec -> spec.setColor(errorColor)
-    //                     .setTitle(messageService.get("common.error"))
-    //                     .setDescription(messageService.get("command.lconvert.multiplier-not-int"))))
-    //                     .flatMap(self -> deleteMessages(self, message));
-    //         }
-    //
-    //         Attachment attachment = message.getAttachments().stream().findFirst().orElseThrow(RuntimeException::new);
-    //
-    //         boolean forward = args.length > 1 && args[1].toLowerCase().equals("forward");
-    //
-    //         int bufferSize = args.length > 2 ? Strings.parseInt(args[2]) : 256;
-    //
-    //         int multiplier = args.length > 3 ? Strings.parseInt(args[3]) : 1;
-    //
-    //         Mono<BufferedImage> image = Mono.fromCallable(() -> ImageIO.read(MessageUtil.download(attachment.getUrl())));
-    //         LContentHandler.HandlerSpec handlerSpec = new LContentHandler.HandlerSpec(image, bufferSize, multiplier, forward);
-    //
-    //         Fi f = lcontentHandler.convert(handlerSpec);
-    //         Objects.requireNonNull(f);
-    //
-    //         Consumer<MessageCreateSpec> messageSpec = spec -> {
-    //             if(f.length() > 32767){
-    //                 spec.setContent(messageService.get("command.lconvert.length-warn"));
-    //             }
-    //             spec.addFile(f.name(), f.read());
-    //         };
-    //
-    //         return res.sendMessage(messageSpec);
-    //     }
-    // }
 }

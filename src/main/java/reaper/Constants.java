@@ -17,7 +17,7 @@ public final class Constants{
     public static Mono<Snowflake> ownerId;
 
     public static Fi configFile = Fi.get("prefs.json");
-    public static Fi cacheDir = new Fi("cache/");
+    public static Fi cacheDir = Fi.get("cache/");
     public static Fi schemeDir = cacheDir.child("schem/");
     public static Fi mapDir = cacheDir.child("map/");
 

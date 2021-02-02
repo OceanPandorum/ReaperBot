@@ -53,7 +53,7 @@ public class ContentHandler{
         String assets = "content/";
         state = new GameState();
 
-        TextureAtlasData data = new TextureAtlasData(new Fi(assets + "sprites/sprites.atlas"), new Fi(assets + "sprites"), false);
+        TextureAtlasData data = new TextureAtlasData(Fi.get(assets + "sprites/sprites.atlas"), Fi.get(assets + "sprites"), false);
         Core.atlas = new TextureAtlas();
 
         ObjectMap<Page, BufferedImage> images = new ObjectMap<>();
@@ -185,7 +185,7 @@ public class ContentHandler{
         });
 
         requests.each(req -> req.block.drawRequestConfigTop(req, requests));
-        ImageIO.write(image, "png", new File("out.png"));
+        ImageIO.write(image, "png", new File("cache/out.png"));
 
         return image;
     }
