@@ -48,7 +48,14 @@ public class MessageEventListener extends ReactiveEventAdapter implements Comman
         return booleans;
     });
 
-    public static String[] swears;
+    public static final String[] swears;
+
+    static{
+        swears = new Fi("great_russian_language.regexp", classpath)
+                .readString("UTF-8")
+                .toLowerCase()
+                .split("\n");
+    }
 
     public MessageEventListener(){
         // из-за гиганских стак трейсов о утечке озу, которые я пока не понял как решать
@@ -60,10 +67,6 @@ public class MessageEventListener extends ReactiveEventAdapter implements Comman
         contentHandler = new ContentHandler();
 
         roleMessages = Seq.with(config.listenedMessages);
-        swears = new Fi("great_russian_language.regexp", classpath)
-                .readString("UTF-8")
-                .toLowerCase()
-                .split("\n");
     }
 
     @Override
@@ -129,7 +132,6 @@ public class MessageEventListener extends ReactiveEventAdapter implements Comman
         if(args.length > 0 && args[0].equals("--info")){
             int index = Strings.parseInt(args[1]);
             try{
-                roleMessages = Seq.with(config.listenedMessages);
                 InfoEmbed infoEmbed = config.info.get(index - 1);
                 if(infoEmbed == null){
                     log.error("Info embed with index '{}' not found", index);
