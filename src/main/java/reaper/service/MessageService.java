@@ -12,7 +12,8 @@ public interface MessageService{
     ReactionEmoji success = ReactionEmoji.unicode("✅");
     ReactionEmoji failed = ReactionEmoji.unicode("❌");
 
-    Color normalColor = Color.of(0xb9fca6), errorColor = Color.of(0xff3838);
+    Color normalColor = Color.of(0xb9fca6);
+    Color errorColor = Color.of(0xff3838);
 
     String get(String key);
 
