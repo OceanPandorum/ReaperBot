@@ -123,12 +123,10 @@ public class Commands{
                     }catch(Throwable ignored){}
                 });
 
-                return pre.then(Mono.fromSupplier(() -> spec -> {
-                    spec.setColor(normalColor);
-                    spec.setImage("attachment://" + previewFile.name());
-                    spec.setAuthor(member.getUsername(), null, member.getAvatarUrl());
-                    spec.setTitle(s.name());
-                }));
+                return pre.thenReturn(spec -> spec.setColor(normalColor)
+                        .setImage("attachment://" + previewFile.name())
+                        .setAuthor(member.getUsername(), null, member.getAvatarUrl())
+                        .setTitle(s.name()));
             });
 
             Function<Throwable, Mono<Void>> fallback = t -> req.getClient().getUserById(config.developerId)
@@ -241,13 +239,11 @@ public class Commands{
                     return mapInfo;
                 });
 
-                return pre.map(info -> spec -> {
-                    spec.setColor(normalColor);
-                    spec.setImage("attachment://" + image.name());
-                    spec.setAuthor(member.getUsername(), null, member.getAvatarUrl());
-                    spec.setTitle(info.name().orElse(file.nameWithoutExtension()));
-                    spec.setDescription(messageService.format("command.maps.embed.description", args[0], index, fiSeq.size));
-                });
+                return pre.map(info -> spec -> spec.setColor(normalColor)
+                        .setImage("attachment://" + image.name())
+                        .setAuthor(member.getUsername(), null, member.getAvatarUrl())
+                        .setTitle(info.name().orElse(file.nameWithoutExtension()))
+                        .setDescription(messageService.format("command.maps.embed.description", args[0], index, fiSeq.size)));
             });
 
             return reply.publishOn(Schedulers.boundedElastic())

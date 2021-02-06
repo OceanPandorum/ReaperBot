@@ -51,15 +51,12 @@ public class MessageEventListener extends ReactiveEventAdapter implements Comman
     public static final String[] swears;
 
     static{
-        swears = new Fi("great_russian_language.regexp", classpath)
-                .readString("UTF-8")
-                .toLowerCase()
-                .split("\n");
-    }
-
-    public MessageEventListener(){
         // из-за гиганских стак трейсов о утечке озу, которые я пока не понял как решать
         ResourceLeakDetector.setLevel(ResourceLeakDetector.Level.DISABLED);
+
+        swears = new Fi("great_russian_language.regexp", classpath)
+                .readString("WINDOWS-1251")
+                .split("\n");
     }
 
     @PostConstruct
