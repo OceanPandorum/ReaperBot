@@ -132,7 +132,7 @@ public class MessageEventListener extends ReactiveEventAdapter implements Comman
         if(args.length > 0 && args[0].equals("--info")){
             int index = Strings.parseInt(args[1]);
             try{
-                InfoEmbed infoEmbed = config.info.get(index - 1);
+                Config.InfoEmbed infoEmbed = config.info.get(index - 1);
                 if(infoEmbed == null){
                     log.error("Info embed with index '{}' not found", index);
                     return;
@@ -149,7 +149,7 @@ public class MessageEventListener extends ReactiveEventAdapter implements Comman
                                 config.update();
                             }
                         })
-                        .block();
+                        .subscribe();
             }catch(Throwable t){
                 throw new RuntimeException(t);
             }

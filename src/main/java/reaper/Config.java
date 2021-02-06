@@ -36,4 +36,11 @@ public class Config{
     public void update(){
         configFile.writeString(gson.toJson(this));
     }
+
+    public static class InfoEmbed{
+        public Snowflake channelId;
+        public String title;
+        public String description;
+        public boolean listenable;
+    }
 }
