@@ -171,6 +171,7 @@ public class ContentHandler{
     }
 
     public BufferedImage previewSchematic(Schematic schem) throws Exception{
+        if(schem.width > 64 || schem.height > 64) throw new IOException("Schematic cannot be larger than 64x64.");
         BufferedImage image = new BufferedImage(schem.width * 32, schem.height * 32, BufferedImage.TYPE_INT_ARGB);
 
         Draw.reset();

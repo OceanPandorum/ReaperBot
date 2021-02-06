@@ -32,7 +32,7 @@ public class AdminActionController{
     @PostMapping("/actions")
     public Mono<AdminAction> add(@RequestBody AdminAction adminAction){
         Mono<AdminAction> action = repository.findByTypeAndTargetId(adminAction.type(), adminAction.targetId());
-        return action.hasElement().flatMap(e -> e ? action.flatMap(a -> repository.save(a.plusEndTimestamp(adminAction.endTimestamp()))) : repository.save(adminAction));
+        return action.hasElement().flatMap(bool -> bool ? action.flatMap(a -> repository.save(a.plusEndTimestamp(adminAction.endTimestamp()))) : repository.save(adminAction));
     }
 
     @DeleteMapping("/actions/{type}/{targetId}")
