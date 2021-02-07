@@ -226,7 +226,7 @@ public class Commands{
             }
 
             Seq<Fi> fiSeq = Fi.get(path).findAll(f -> f.extension().equals(Vars.mapExtension));
-            if(index > fiSeq.size || index < 0){
+            if(index >= fiSeq.size || index < 0){
                 return messageService.err(reply, messageService.get("command.maps.index-of-bound"));
             }
 
