@@ -1,9 +1,9 @@
 package reaper.controller;
 
-import org.slf4j.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 import reactor.core.publisher.*;
+import reactor.util.*;
 import reaper.presence.AdminActionType;
 import reaper.presence.entity.AdminAction;
 import reaper.presence.repository.AdminActionRepository;
@@ -11,7 +11,7 @@ import reaper.presence.repository.AdminActionRepository;
 @RestController
 @RequestMapping("/api/v1")
 public class AdminActionController{
-    private static final Logger log = LoggerFactory.getLogger(AdminActionController.class);
+    private static final Logger log = Loggers.getLogger(AdminActionController.class);
 
     private final AdminActionRepository repository;
 

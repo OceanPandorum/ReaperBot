@@ -11,7 +11,7 @@ repositories{
 }
 
 ext{
-    mindustry_version = 'v123.1'
+    mindustry_version = 'v124'
     d4j_version       = '3.1.3'
     gson_version      = '2.8.6'
 }

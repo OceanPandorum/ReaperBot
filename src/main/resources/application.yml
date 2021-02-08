@@ -3,9 +3,9 @@ logging:
     console: "%magenta([%d{MM-dd-yyyy HH:mm:ss}]) %clr([%0.-1level]) %clr([%-15.-15t]){faint} %magenta(%-40.40logger{39}) %clr(:){red} %clr(%m){faint}%n"
 spring:
   r2dbc:
-    url: ""
-    password: ""
-    username: ""
+    url: "r2dbc:postgresql://localhost:1337/pandorum"
+    password: "1337"
+    username: "skat"
   task:
     scheduling:
       pool:
