@@ -18,9 +18,17 @@ public class AdminAction{
     @JsonProperty("admin_id")
     private String adminId;
 
+    @Column("admin_nickname")
+    @JsonProperty("admin_nickname")
+    private String adminNickname;
+
     @Column("target_id")
     @JsonProperty("target_id")
     private String targetId;
+
+    @Column("target_nickname")
+    @JsonProperty("target_nickname")
+    private String targetNickname;
 
     @JsonProperty
     private AdminActionType type;
@@ -51,12 +59,28 @@ public class AdminAction{
         this.adminId = adminId;
     }
 
+    public String adminNickname(){
+        return adminNickname;
+    }
+
+    public void adminNickname(String adminNickname){
+        this.adminNickname = adminNickname;
+    }
+
     public String targetId(){
         return targetId;
     }
 
     public void targetId(String targetId){
         this.targetId = targetId;
+    }
+
+    public String targetNickname(){
+        return targetNickname;
+    }
+
+    public void targetNickname(String targetNickname){
+        this.targetNickname = targetNickname;
     }
 
     public AdminActionType type(){
@@ -103,7 +127,9 @@ public class AdminAction{
         AdminAction that = (AdminAction)o;
         return Objects.equals(id, that.id) &&
                Objects.equals(adminId, that.adminId) &&
+               Objects.equals(adminNickname, that.adminNickname) &&
                Objects.equals(targetId, that.targetId) &&
+               Objects.equals(targetNickname, that.targetNickname) &&
                type == that.type &&
                Objects.equals(reason, that.reason) &&
                Objects.equals(timestamp, that.timestamp) &&
@@ -112,6 +138,21 @@ public class AdminAction{
 
     @Override
     public int hashCode(){
-        return Objects.hash(id, adminId, targetId, type, reason, timestamp, endTimestamp);
+        return Objects.hash(id, adminId, adminNickname, targetId, targetNickname, type, reason, timestamp, endTimestamp);
+    }
+
+    @Override
+    public String toString(){
+        return "AdminAction{" +
+               "id='" + id + '\'' +
+               ", adminId='" + adminId + '\'' +
+               ", adminNickname='" + adminNickname + '\'' +
+               ", targetId='" + targetId + '\'' +
+               ", targetNickname='" + targetNickname + '\'' +
+               ", type=" + type +
+               ", reason='" + reason + '\'' +
+               ", timestamp=" + timestamp +
+               ", endTimestamp=" + endTimestamp +
+               '}';
     }
 }

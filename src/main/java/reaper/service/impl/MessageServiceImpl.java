@@ -2,6 +2,7 @@ package reaper.service.impl;
 
 import discord4j.core.object.entity.channel.MessageChannel;
 import discord4j.core.spec.EmbedCreateSpec;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationContext;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Mono;
@@ -16,7 +17,7 @@ public class MessageServiceImpl implements MessageService{
 
     private final ApplicationContext applicationContext;
 
-    public MessageServiceImpl(ApplicationContext applicationContext){
+    public MessageServiceImpl(@Autowired ApplicationContext applicationContext){
         this.applicationContext = applicationContext;
     }
 
@@ -41,8 +42,7 @@ public class MessageServiceImpl implements MessageService{
 
     @Override
     public Mono<Void> info(Mono<? extends MessageChannel> channel, Consumer<EmbedCreateSpec> embed){
-        return channel.flatMap(c -> c.createEmbed(embed))
-                .then();
+        return channel.flatMap(c -> c.createEmbed(embed)).then();
     }
 
     @Override
@@ -52,7 +52,6 @@ public class MessageServiceImpl implements MessageService{
 
     @Override
     public Mono<Void> err(Mono<? extends MessageChannel> channel, String title, String text){
-        return channel.flatMap(c -> c.createEmbed(e -> e.setColor(errorColor).setTitle(title).setDescription(text)))
-                .then();
+        return channel.flatMap(c -> c.createEmbed(e -> e.setColor(errorColor).setTitle(title).setDescription(text))).then();
     }
 }

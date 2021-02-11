@@ -7,6 +7,7 @@ import java.util.*;
 import static reaper.Constants.*;
 
 public class Config{
+    public Snowflake banListId = Snowflake.of(744854768593141810L);
     public Snowflake commandChannelId = Snowflake.of(744874986073751584L);
     public Snowflake mapsChannelId = Snowflake.of(744906782370955274L);
     public Snowflake schematicsChannelId = Snowflake.of(744906867183976569L);
