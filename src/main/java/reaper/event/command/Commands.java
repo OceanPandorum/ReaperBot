@@ -70,6 +70,20 @@ public class Commands{
         }
     }
 
+    @DiscordCommand(key = "мат", params = "<слово>", description = "command.swear.description")
+    public class SwearCommand implements Command{
+        @Override
+        public Mono<Void> execute(String[] args, CommandRequest req, CommandResponse res){
+            if(args[0].length() == 1){
+                return messageService.err(req.getReplyChannel(), messageService.get("command.swear.many-length"));
+            }
+            if(args[0].length() > 10){
+                return messageService.err(req.getReplyChannel(), messageService.get("command.swear.few-length"));
+            }
+            return Mono.fromRunnable(() -> Fi.get("swears.txt").writeString(args[0] + "\n", true));
+        }
+    }
+
     @DiscordCommand(key = "status", description = "command.status.description")
     public class StatusCommand implements Command{
         @Override
@@ -80,7 +94,7 @@ public class Commands{
             long mem = (Runtime.getRuntime().totalMemory() - Runtime.getRuntime().freeMemory()) / 1024 / 1024;
             builder.append(messageService.format("command.status.memory", mem)).append("\n");
             builder.append(messageService.format("command.status.uptime", Strings.formatMillis(rb.getUptime()))).append("\n");
-            builder.append(messageService.format("command.status.swears-count", MessageEventListener.swears.length)).append("\n");
+            builder.append(messageService.format("command.status.swears-count", MessageEventListener.swears.length + Fi.get("swears.txt").readString().split("\n").length)).append("\n");
             builder.append(messageService.format("command.status.schem-dir-size", schemeDir.findAll(f -> f.extension().equals(Vars.schematicExtension)).size)).append("\n");
             builder.append(messageService.format("command.status.map-dir-size", mapDir.findAll(f -> f.extension().equals(Vars.mapExtension)).size)).append("\n");
             builder.append(messageService.format("command.status.validation-size", MessageEventListener.validation.size()));
