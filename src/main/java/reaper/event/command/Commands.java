@@ -5,6 +5,7 @@ import arc.func.Cons2;
 import arc.struct.Seq;
 import arc.util.Strings;
 import arc.util.io.Streams;
+import discord4j.common.util.Snowflake;
 import discord4j.core.object.Embed;
 import discord4j.core.object.entity.*;
 import discord4j.core.object.entity.channel.*;
@@ -72,15 +73,17 @@ public class Commands{
 
     @DiscordCommand(key = "мат", params = "<слово>", description = "command.swear.description")
     public class SwearCommand implements Command{
+        public final ReactionEmoji ok = ReactionEmoji.custom(Snowflake.of(802541424624795689L), "kekav", false);
+
         @Override
         public Mono<Void> execute(String[] args, CommandRequest req, CommandResponse res){
             if(args[0].length() == 1){
                 return messageService.err(req.getReplyChannel(), messageService.get("command.swear.many-length"));
-            }
-            if(args[0].length() > 10){
+            }else if(args[0].length() > 20){
                 return messageService.err(req.getReplyChannel(), messageService.get("command.swear.few-length"));
+            }else{
+                return Mono.fromRunnable(() -> Fi.get("swears.txt").writeString(args[0] + "\n", true)).then(req.getMessage().addReaction(ok));
             }
-            return Mono.fromRunnable(() -> Fi.get("swears.txt").writeString(args[0] + "\n", true));
         }
     }
 
