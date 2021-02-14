@@ -20,10 +20,6 @@ public class CommandHandler{
     @Autowired
     private MessageService messageService;
 
-    public void setPrefix(String prefix){
-        this.prefix = prefix;
-    }
-
     @Autowired(required = false)
     public void init(List<Command> commands){
         commands.forEach(c -> this.commands.put(c.compile().text, c));
@@ -96,21 +92,6 @@ public class CommandHandler{
 
             return cmd.execute(result.toArray(String.class), operations, operations);
         }else{
-            int min = 0;
-            CommandInfo closest = null;
-
-            for(CommandInfo c : commands().map(Command::compile)){
-                int dst = Strings.levenshtein(c.text, commandstr);
-                if(dst < 3 && (closest == null || dst < min)){
-                    min = dst;
-                    closest = c;
-                }
-            }
-
-
-            if(closest != null){
-                return messageService.err(channel, messageService.format("command.response.found-closest", closest.text));
-            }
             return messageService.err(channel, messageService.format("command.response.unknown", prefix));
         }
     }

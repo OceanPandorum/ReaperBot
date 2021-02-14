@@ -28,6 +28,7 @@ import javax.annotation.PostConstruct;
 import java.util.*;
 
 import static arc.Files.FileType.classpath;
+import static reactor.function.TupleUtils.*;
 import static reaper.Constants.*;
 
 @Component
@@ -111,17 +112,17 @@ public class MessageEventListener extends ReactiveEventAdapter implements Comman
 
         Mono<Void> swear = isAdmin(member).flatMap(bool -> !bool && Structs.contains(swears, s -> Structs.contains(text.split("\\s+"), t -> t.matches(s))) ? message.delete() : Mono.empty());
 
-        return message.getChannel().flatMap(channel -> {
-            Mono<Void> botChannel = isAdmin(member).flatMap(bool -> !config.commandChannelId.equals(channel.getId()) && !bool ? Mono.empty() : handler.handle(event));
+        Mono<Void> botChannel = Mono.zip(message.getChannel(), isAdmin(member))
+                .filter(predicate((channel, admin) -> config.commandChannelId.equals(channel.getId()) || admin || !Snowflake.of(792414212361682954L).equals(channel.getId())))
+                .flatMap(__ -> handler.handle(event));
 
-            return Mono.when(swear, botChannel);
-        });
+        return Mono.when(swear, botChannel);
     }
 
     public Mono<Boolean> isAdmin(Member member){
         return member.getRoles().any(role -> config.adminRoleId.equals(role.getId()) || role.getPermissions().contains(Permission.ADMINISTRATOR))
                 .zipWith(ownerId)
-                .map(TupleUtils.function((bool, ownerId) -> bool || ownerId.equals(member.getId())));
+                .map(function((bool, ownerId) -> bool || ownerId.equals(member.getId())));
     }
 
     @Override
