@@ -7,29 +7,40 @@ import arc.util.Strings;
 import arc.util.io.Streams;
 import discord4j.common.util.Snowflake;
 import discord4j.core.object.Embed;
-import discord4j.core.object.entity.*;
-import discord4j.core.object.entity.channel.*;
+import discord4j.core.object.entity.Attachment;
+import discord4j.core.object.entity.Member;
+import discord4j.core.object.entity.Message;
+import discord4j.core.object.entity.User;
+import discord4j.core.object.entity.channel.MessageChannel;
+import discord4j.core.object.entity.channel.TextChannel;
 import discord4j.core.object.reaction.ReactionEmoji;
 import discord4j.core.spec.EmbedCreateSpec;
 import mindustry.Vars;
-import mindustry.game.*;
+import mindustry.game.Schematic;
+import mindustry.game.Schematics;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
-import reactor.core.publisher.*;
+import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
 import reactor.core.scheduler.Schedulers;
 import reactor.function.TupleUtils;
-import reactor.util.*;
+import reactor.util.Logger;
+import reactor.util.Loggers;
 import reaper.ContentHandler;
-import reaper.event.*;
+import reaper.event.MessageEventListener;
+import reaper.event.ReactionEventListener;
 import reaper.service.MessageService;
 import reaper.util.MessageUtil;
 
 import javax.imageio.ImageIO;
 import java.awt.image.BufferedImage;
-import java.lang.management.*;
-import java.util.*;
+import java.lang.management.ManagementFactory;
+import java.lang.management.RuntimeMXBean;
+import java.util.Optional;
+import java.util.UUID;
 import java.util.concurrent.atomic.AtomicReference;
-import java.util.function.*;
+import java.util.function.Consumer;
+import java.util.function.Function;
 
 import static reaper.Constants.*;
 import static reaper.event.ReactionEventListener.all;
@@ -185,9 +196,9 @@ public class Commands{
             Fi mapFile = mapDir.child(attachment.getFilename());
             Fi image = mapDir.child(String.format("img_%s.png", UUID.randomUUID().toString()));
             Mono<Consumer<EmbedCreateSpec>> map = Mono.defer(() -> {
-                Mono<ContentHandler.MapInfo> pre = Mono.fromCallable(() -> {
+                Mono<ContentHandler.Map> pre = Mono.fromCallable(() -> {
                     Streams.copy(MessageUtil.download(attachment.getUrl()), mapFile.write());
-                    ContentHandler.MapInfo mapInfo = contentHandler.readMap(mapFile.read());
+                    ContentHandler.Map mapInfo = contentHandler.readMap(mapFile.read());
                     ImageIO.write(mapInfo.image, "png", image.file());
                     return mapInfo;
                 });
@@ -250,8 +261,8 @@ public class Commands{
             Fi file = fiSeq.get(index);
             Fi image = mapDir.child(String.format("img_%s.png", UUID.randomUUID().toString()));
             Mono<Consumer<EmbedCreateSpec>> map = Mono.defer(() -> {
-                Mono<ContentHandler.MapInfo> pre = Mono.fromCallable(() -> {
-                    ContentHandler.MapInfo mapInfo = contentHandler.readMap(file.read());
+                Mono<ContentHandler.Map> pre = Mono.fromCallable(() -> {
+                    ContentHandler.Map mapInfo = contentHandler.readMap(file.read());
                     ImageIO.write(mapInfo.image, "png", image.file());
                     return mapInfo;
                 });
